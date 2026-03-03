@@ -79,8 +79,8 @@ async fn main() {
         .unwrap_or_else(|_| "3001".to_string())
         .parse()
         .unwrap_or(3001);
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
-    println!("🌐 Listening on http://{}", addr);
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    println!("🌐 Listening on http://0.0.0.0:{}", port);
 
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap_or_else(|e| {
         eprintln!("❌ Failed to bind to port {}: {}", port, e);
