@@ -9,7 +9,6 @@
 # Rust
 **/target
 **/*.bk
-Cargo.lock
 
 # Solana / Anchor
 .anchor
