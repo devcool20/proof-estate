@@ -1,0 +1,39 @@
+# Node.js
+**/node_modules
+**/dist
+**/.next
+**/out
+**/build
+.eslintcache
+
+# Rust
+**/target
+**/*.bk
+Cargo.lock
+
+# Solana / Anchor
+.anchor
+**/id.json
+**/deploy/*.json
+
+# Environment Variables (Keep secrets safe!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+build_log.txt
+build_log_2.txt
