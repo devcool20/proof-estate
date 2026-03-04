@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { listProperties, type Property } from "@/lib/api";
 
+import { useAuth } from "@/lib/AuthContext";
+
 function StatCard({ icon, label, value, accent }: { icon: string; label: string; value: string | number; accent: string }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center gap-4 hover:shadow-sm transition-shadow">
@@ -20,6 +22,7 @@ function StatCard({ icon, label, value, accent }: { icon: string; label: string;
 export default function DashboardPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     listProperties()
@@ -29,7 +32,7 @@ export default function DashboardPage() {
   }, []);
 
   const total      = properties.length;
-  const verified   = properties.filter((p) => p.status === "verified").length;
+  const verified   = properties.filter((p) => p.status === "verified" || p.status === "pending_tokenization").length;
   const tokenized  = properties.filter((p) => p.status === "tokenized").length;
   const pending    = properties.filter((p) => p.status === "pending_verification").length;
 
@@ -48,15 +51,40 @@ export default function DashboardPage() {
                 On-chain verification and tokenization protocol for real-world real estate.
                 Submit your property, get it verified against government registries, and tokenize it into fractional SPL tokens on Solana.
               </p>
+              
               <div className="flex gap-3 mt-5">
-                <Link href="/verify" className="bg-primary hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm">
-                  <span className="material-symbols-outlined text-[18px]">add_circle</span>
-                  Submit Asset
-                </Link>
-                <Link href="/properties" className="bg-white border border-slate-200 hover:border-primary/30 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">home_work</span>
-                  My Properties
-                </Link>
+                {!user && (
+                    <div className="text-sm font-semibold text-primary bg-primary/10 px-4 py-2 rounded-xl">
+                      Connect your wallet to get started.
+                    </div>
+                )}
+                
+                {user?.role === "owner" && (
+                  <>
+                    <Link href="/verify" className="bg-primary hover:bg-slate-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm">
+                      <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                      Submit Asset
+                    </Link>
+                    <Link href="/properties" className="bg-white border border-slate-200 hover:border-primary/30 text-slate-700 px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px]">home_work</span>
+                      My Properties
+                    </Link>
+                  </>
+                )}
+
+                {user?.role === "investor" && (
+                  <Link href="/explore" className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm">
+                    <span className="material-symbols-outlined text-[18px]">explore</span>
+                    Explore Marketplace
+                  </Link>
+                )}
+
+                {user?.role === "admin" && (
+                  <Link href="/admin" className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-sm">
+                    <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+                    Go to Admin Dashboard
+                  </Link>
+                )}
               </div>
             </div>
             {/* Visual accent */}

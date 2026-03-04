@@ -3,9 +3,19 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-export type PropertyStatus = "draft" | "pending_verification" | "verified" | "tokenized" | "rejected";
+export type PropertyStatus = "draft" | "pending_verification" | "verified" | "pending_tokenization" | "tokenized" | "rejected";
 export type PropertyType = "residential" | "commercial" | "land" | "warehouse";
 export type DistFrequency = "monthly" | "quarterly" | "annually";
+
+export type UserRole = "owner" | "investor" | "verifier" | "admin";
+
+export interface User {
+    wallet: string;
+    name?: string;
+    email?: string;
+    role: UserRole;
+    created_at: string;
+}
 
 export interface Property {
     id: string;
@@ -90,15 +100,44 @@ export async function verifyProperty(id: string, verifier_wallet: string, approv
     );
 }
 
-// Tokenize a verified property
-export async function tokenizeProperty(id: string, payload: TokenizePayload) {
-    return request<{ property_id: string; token_mint: string; token_supply: number; status: string; message: string }>(
+// Tokenize requested by owner
+export async function requestTokenize(id: string, payload: TokenizePayload) {
+    return request<{ property_id: string; status: string; message: string }>(
         `/api/v1/properties/${id}/tokenize`,
         { method: "POST", body: JSON.stringify(payload) }
+    );
+}
+
+// Tokenize approved by admin
+export async function approveTokenize(id: string, admin_wallet: string) {
+    return request<{ property_id: string; token_mint: string; status: string; message: string }>(
+        `/api/v1/properties/${id}/approve_tokenization`,
+        { method: "POST", body: JSON.stringify({ admin_wallet }) }
     );
 }
 
 // List tokenized properties for investors/marketplace
 export async function listMarketplace(): Promise<Property[]> {
     return request<Property[]>("/api/v1/marketplace");
+}
+
+// User Profiles
+export async function getUserProfile(wallet: string): Promise<User | null> {
+    try {
+        return await request<User>(`/api/v1/users/${wallet}`);
+    } catch (e: any) {
+        if (e.message === "User not found") return null;
+        throw e;
+    }
+}
+
+export async function createUserProfile(payload: { wallet: string; name?: string; email?: string; role: string }): Promise<User> {
+    return request<User>("/api/v1/users", { method: "POST", body: JSON.stringify(payload) });
+}
+
+// Helper to get absolute URL for documents from backend
+export function getDocUrl(path?: string) {
+    if (!path) return "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=2000";
+    if (path.startsWith("http")) return path;
+    return `${API_BASE}${path}`;
 }

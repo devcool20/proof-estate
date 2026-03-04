@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'export',
+  // output: 'export', // Removed to support dynamic routes and server-side features
   images: {
     unoptimized: true,
   },

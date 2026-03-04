@@ -6,6 +6,8 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";
 
+import { AuthProvider } from "@/lib/AuthContext";
+
 export const AppProviders: FC<{ children: ReactNode }> = ({ children }) => {
   // You can also provide a custom RPC endpoint
   const endpoint = useMemo(() => clusterApiUrl("devnet"), []);
@@ -21,7 +23,11 @@ export const AppProviders: FC<{ children: ReactNode }> = ({ children }) => {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

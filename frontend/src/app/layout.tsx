@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "./providers";
 import { Navbar } from "../components/Navbar";
+import { ClerkProvider } from "@clerk/nextjs";
 
 const inter = Inter({
  variable: "--font-inter",
@@ -20,6 +21,7 @@ export default function RootLayout({
  children: React.ReactNode;
 }>) {
  return (
+ <ClerkProvider>
  <html lang="en">
  <head>
  <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -36,5 +38,6 @@ export default function RootLayout({
  </AppProviders>
  </body>
  </html>
+ </ClerkProvider>
  );
 }

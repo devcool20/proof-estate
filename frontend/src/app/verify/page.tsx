@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { submitProperty, type PropertyType } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
 
 interface FormData {
   name: string;
@@ -18,6 +19,7 @@ interface FormData {
 const STEPS = ["Property Details", "Document Upload", "Review & Submit"];
 
 export default function VerifyPage() {
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>({
     name: "",
@@ -29,6 +31,13 @@ export default function VerifyPage() {
     owner_wallet: "",
     document_url: "",
   });
+
+  useEffect(() => {
+    if (user?.wallet) {
+      setForm(prev => ({ ...prev, owner_wallet: user.wallet }));
+    }
+  }, [user]);
+
   const [fileSelected, setFileSelected] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ property_id: string; metadata_hash: string; message: string } | null>(null);
@@ -49,11 +58,16 @@ export default function VerifyPage() {
   };
 
   const handleSubmit = async () => {
+    if (!user) {
+        setError("You must be logged in as an Owner to submit a property.");
+        return;
+    }
+    
     setIsSubmitting(true);
     setError(null);
     try {
       const resp = await submitProperty({
-        owner_wallet:    form.owner_wallet || "AnonymousWallet111111111111111111111111111",
+        owner_wallet:    user.wallet,
         name:            form.name,
         address:         `${form.address}, ${form.city}`,
         city:            form.city,
@@ -192,9 +206,9 @@ export default function VerifyPage() {
                     </label>
                   </div>
                   <label className="block">
-                    <span className="text-sm font-medium text-slate-700 block mb-1">Owner Wallet Address (Solana)</span>
-                    <input name="owner_wallet" value={form.owner_wallet} onChange={handleChange} placeholder="Your Solana wallet public key (auto-filled if wallet connected)"
-                      className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm font-mono" />
+                    <span className="text-sm font-medium text-slate-700 block mb-1">Owner Wallet Address (Clerk ID)</span>
+                    <input name="owner_wallet" value={form.owner_wallet} readOnly placeholder="Login with Clerk to connect your profile"
+                      className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed outline-none transition-all text-sm font-mono" />
                   </label>
                 </div>
                 <button

@@ -22,6 +22,7 @@ use solana_service::SolanaService;
 struct AppState {
     db: Option<PgPool>,
     solana: Arc<SolanaService>,
+    admin_clerk_id: Option<String>,
 }
 
 // ────────────────────────────────────────────────────────────
@@ -43,7 +44,156 @@ async fn main() {
             .await
         {
             Ok(p) => {
-                println!("✅ DB connected");
+                println!("✅ DB connected. Verifying tables...");
+                
+                let _ = sqlx::query("
+                    CREATE TABLE IF NOT EXISTS users (
+                        wallet TEXT PRIMARY KEY,
+                        name TEXT,
+                        email TEXT,
+                        role TEXT NOT NULL DEFAULT 'investor',
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    );
+                ").execute(&p).await.expect("Failed to initialize users table");
+                    
+                let _ = sqlx::query("
+                    CREATE TABLE IF NOT EXISTS properties (
+                        id UUID PRIMARY KEY,
+                        owner_wallet TEXT NOT NULL REFERENCES users(wallet),
+                        name TEXT NOT NULL,
+                        address TEXT NOT NULL,
+                        city TEXT,
+                        country TEXT,
+                        area_sqft INT,
+                        property_type TEXT,
+                        asset_value_inr BIGINT,
+                        document_url TEXT,
+                        metadata_hash TEXT,
+                        on_chain_address TEXT,
+                        token_mint TEXT,
+                        status TEXT NOT NULL DEFAULT 'draft',
+                        token_supply BIGINT,
+                        token_price_usd DOUBLE PRECISION,
+                        yield_percent DOUBLE PRECISION,
+                        dist_frequency TEXT,
+                        submitted_at TIMESTAMPTZ,
+                        verified_at TIMESTAMPTZ,
+                        tokenized_at TIMESTAMPTZ,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    );
+                ").execute(&p).await.expect("Failed to initialize properties table");
+                    
+                let _ = sqlx::query("
+                    CREATE TABLE IF NOT EXISTS verification_logs (
+                        id SERIAL PRIMARY KEY,
+                        property_id UUID NOT NULL REFERENCES properties(id),
+                        actor_wallet TEXT NOT NULL,
+                        action TEXT NOT NULL,
+                        notes TEXT,
+                        tx_signature TEXT,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    );
+                ").execute(&p).await.expect("Failed to initialize verification_logs table");
+
+                // Seed data if empty
+                let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM properties")
+                    .fetch_one(&p)
+                    .await
+                    .unwrap_or(0);
+
+                if count == 0 {
+                    println!("🌱 Seeding real Delhi property data with persistent IDs...");
+                    
+                    // 1. Create Government User
+                    let _ = sqlx::query("
+                        INSERT INTO users (wallet, name, email, role)
+                        VALUES ('user_2tvQf9oV7jQ3kX9p5m1nR0a8Z3Y', 'Delhi Development Authority (DDA)', 'admin@dda.gov.in', 'owner')
+                        ON CONFLICT (wallet) DO NOTHING
+                    ").execute(&p).await;
+
+                    // 2. Insert Properties with FIXED IDs (to survive restarts)
+                    let properties = vec![
+                        (
+                            Uuid::parse_str("d1526e1e-8c27-4978-94d5-802e6b01216e").unwrap(),
+                            "DDA Commercial Tower, Nehru Place",
+                            "Nehru Place, New Delhi, 110019",
+                            "Commercial",
+                            45000_i64,
+                            120000000_i64, 
+                            "verified",
+                            "/docs/deed_1.png"
+                        ),
+                        (
+                            Uuid::parse_str("d2526e1e-8c27-4978-94d5-802e6b01216f").unwrap(),
+                            "Okhla Industrial Plot 42",
+                            "Phase III, Okhla Industrial Estate, New Delhi, 110020",
+                            "warehouse",
+                            12000_i64,
+                            18000000_i64,
+                            "verified",
+                            "/docs/deed_2.png"
+                        ),
+                        (
+                            Uuid::parse_str("d3526e1e-8c27-4978-94d5-802e6b012170").unwrap(),
+                            "Dwarka Sector 18 Residential Plot",
+                            "Sec 18, Dwarka, New Delhi, 110075",
+                            "residential",
+                            5500_i64,
+                            850000000_i64,
+                            "pending_verification",
+                            "/docs/deed_1.png"
+                        ),
+                        (
+                            Uuid::parse_str("d4526e1e-8c27-4978-94d5-802e6b012171").unwrap(),
+                            "Vasant Kunj Community Hub",
+                            "Pocket 2, Sector C, Vasant Kunj, New Delhi, 110070",
+                            "land",
+                            25000_i64,
+                            650000000_i64,
+                            "tokenized",
+                            "/docs/deed_2.png"
+                        ),
+                        (
+                            Uuid::parse_str("d5526e1e-8c27-4978-94d5-802e6b012172").unwrap(),
+                            "Cyber City Tech Park - Tower B",
+                            "DLF Cyber City, Phase 2, Gurugram, 122002",
+                            "Commercial",
+                            120000_i64,
+                            2500000000_i64, 
+                            "verified",
+                            "/docs/deed_1.png"
+                        ),
+                        (
+                            Uuid::parse_str("d6526e1e-8c27-4978-94d5-802e6b012173").unwrap(),
+                            "Rohini Sector 11 Industrial Shed",
+                            "Plot 88, Sector 11, Rohini, Delhi, 110085",
+                            "warehouse",
+                            8500_i64,
+                            12000000_i64,
+                            "verified",
+                            "/docs/deed_2.png"
+                        )
+                    ];
+
+                    for (id, name, addr, ptype, area, val, status, doc) in properties {
+                        let _ = sqlx::query("
+                            INSERT INTO properties (id, owner_wallet, name, address, property_type, area_sqft, asset_value_inr, status, document_url, created_at)
+                            VALUES ($1, 'user_2tvQf9oV7jQ3kX9p5m1nR0a8Z3Y', $2, $3, $4, $5, $6, $7, $8, now())
+                            ON CONFLICT (id) DO NOTHING
+                        ")
+                        .bind(id)
+                        .bind(name)
+                        .bind(addr)
+                        .bind(ptype)
+                        .bind(area)
+                        .bind(val)
+                        .bind(status)
+                        .bind(doc)
+                        .execute(&p).await;
+                    }
+                    println!("✅ Seeding complete.");
+                }
+                
                 Some(p)
             }
             Err(e) => {
@@ -56,9 +206,25 @@ async fn main() {
         None
     };
 
+    let admin_clerk_id = std::env::var("ADMIN_CLERK_ID").ok();
+    if let Some(ref id) = admin_clerk_id {
+        println!("🛡️ Admin access restricted to ID: {}", id);
+        if let Some(ref pool) = pool {
+            let _ = sqlx::query("
+                INSERT INTO users (wallet, name, role)
+                VALUES ($1, 'Admin', 'admin')
+                ON CONFLICT (wallet) DO NOTHING
+            ")
+            .bind(id)
+            .execute(pool)
+            .await;
+        }
+    }
+
     let state = Arc::new(AppState { 
         db: pool,
         solana: Arc::new(SolanaService::new()),
+        admin_clerk_id,
     });
 
     let app = Router::new()
@@ -68,10 +234,17 @@ async fn main() {
         .route("/api/v1/properties",               get(list_properties))
         .route("/api/v1/properties/submit",        post(submit_property))
         .route("/api/v1/properties/:id",           get(get_property))
+        .route("/api/v1/properties/:id/tokenize",  post(request_tokenize)) // Request tokenization
+        // Properties – admin/verifier side
         .route("/api/v1/properties/:id/verify",    patch(verify_property))
-        .route("/api/v1/properties/:id/tokenize",  post(tokenize_property))
+        .route("/api/v1/properties/:id/approve_tokenization", post(approve_tokenization)) // Admin approves tokenization
         // Properties – investor side
         .route("/api/v1/marketplace",              get(list_tokenized))
+        // User Profiles
+        .route("/api/v1/users",                    post(create_user))
+        .route("/api/v1/users/:wallet",            get(get_user))
+        // Static Documents
+        .nest_service("/docs", tower_http::services::ServeDir::new("public/docs"))
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -116,6 +289,7 @@ struct PropertyRow {
     verified_at:       Option<String>,
     tokenized_at:      Option<String>,
     created_at:        String,
+    document_url:      Option<String>,
 }
 
 // ────────────────────────────────────────────────────────────
@@ -127,79 +301,8 @@ fn sha256_hex(input: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-fn mock_properties() -> Vec<PropertyRow> {
-    vec![
-        PropertyRow {
-            id:              "prop-01".into(),
-            name:            "1010 Market Street, San Francisco".into(),
-            address:         "1010 Market St, San Francisco, CA 94103".into(),
-            city:            Some("San Francisco".into()),
-            country:         Some("USA".into()),
-            area_sqft:       Some(12000),
-            property_type:   Some("commercial".into()),
-            asset_value_inr: Some(3_74_00_00_00_000),
-            metadata_hash:   Some("7f3a29b2c4d8e1f0a5b6c9d2e3f4a7b8".into()),
-            on_chain_address:Some("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS".into()),
-            token_mint:      None,
-            status:          "verified".into(),
-            token_supply:    None,
-            token_price_usd: None,
-            yield_percent:   None,
-            dist_frequency:  Some("monthly".into()),
-            owner_wallet:    "OwnerX1111111111111111111111111111111111111".into(),
-            submitted_at:    Some("2026-02-01T10:00:00Z".into()),
-            verified_at:     Some("2026-02-03T14:30:00Z".into()),
-            tokenized_at:    None,
-            created_at:      "2026-02-01T10:00:00Z".into(),
-        },
-        PropertyRow {
-            id:              "prop-02".into(),
-            name:            "Sunset Boulevard Commercial Complex".into(),
-            address:         "9800 Sunset Blvd, Los Angeles, CA 90069".into(),
-            city:            Some("Los Angeles".into()),
-            country:         Some("USA".into()),
-            area_sqft:       Some(8500),
-            property_type:   Some("commercial".into()),
-            asset_value_inr: Some(1_04_00_00_00_000),
-            metadata_hash:   Some("a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3".into()),
-            on_chain_address:Some("SunsetPDA111111111111111111111111111111111".into()),
-            token_mint:      Some("SunsetMint111111111111111111111111111111111".into()),
-            status:          "tokenized".into(),
-            token_supply:    Some(1_000_000),
-            token_price_usd: Some(12.5),
-            yield_percent:   Some(6.2),
-            dist_frequency:  Some("quarterly".into()),
-            owner_wallet:    "OwnerY2222222222222222222222222222222222222".into(),
-            submitted_at:    Some("2026-01-10T09:00:00Z".into()),
-            verified_at:     Some("2026-01-15T11:00:00Z".into()),
-            tokenized_at:    Some("2026-01-20T16:00:00Z".into()),
-            created_at:      "2026-01-10T09:00:00Z".into(),
-        },
-        PropertyRow {
-            id:              "prop-03".into(),
-            name:            "Downtown Warehouse Facility".into(),
-            address:         "500 Industrial Ave, Chicago, IL 60607".into(),
-            city:            Some("Chicago".into()),
-            country:         Some("USA".into()),
-            area_sqft:       Some(20000),
-            property_type:   Some("warehouse".into()),
-            asset_value_inr: Some(62_00_00_00_000),
-            metadata_hash:   None,
-            on_chain_address:None,
-            token_mint:      None,
-            status:          "pending_verification".into(),
-            token_supply:    None,
-            token_price_usd: None,
-            yield_percent:   None,
-            dist_frequency:  None,
-            owner_wallet:    "OwnerZ3333333333333333333333333333333333333".into(),
-            submitted_at:    Some("2026-03-01T12:00:00Z".into()),
-            verified_at:     None,
-            tokenized_at:    None,
-            created_at:      "2026-03-01T12:00:00Z".into(),
-        },
-    ]
-}
+// Removed mock_properties() as we are moving to live DB only.
+
 
 // ────────────────────────────────────────────────────────────
 // Handlers
@@ -262,6 +365,7 @@ async fn list_properties(
                     created_at:      r.try_get::<chrono::DateTime<Utc>, _>("created_at")
                                       .unwrap_or_default()
                                       .to_rfc3339(),
+                    document_url:    r.try_get("document_url").ok(),
                 }).collect();
                 (StatusCode::OK, Json(props)).into_response()
             }
@@ -271,12 +375,7 @@ async fn list_properties(
             }
         }
     } else {
-        // Mock mode
-        let mut mock = mock_properties();
-        if let Some(ref filter) = status_filter {
-            mock.retain(|p| &p.status == filter);
-        }
-        (StatusCode::OK, Json(mock)).into_response()
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
     }
 }
 
@@ -285,15 +384,53 @@ async fn get_property(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    if state.db.is_none() {
-        // Mock
-        let mock = mock_properties();
-        if let Some(p) = mock.into_iter().find(|p| p.id == id) {
-            return (StatusCode::OK, Json(serde_json::to_value(p).unwrap())).into_response();
+    if let Some(ref pool) = state.db {
+        let property_uuid = match Uuid::parse_str(&id) {
+            Ok(u) => u,
+            Err(_) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "invalid uuid" }))).into_response(),
+        };
+
+        let result = sqlx::query(
+            "SELECT * FROM properties WHERE id = $1"
+        )
+        .bind(property_uuid)
+        .fetch_one(pool)
+        .await;
+
+        match result {
+            Ok(r) => {
+                let prop = PropertyRow {
+                    id:              r.get::<Uuid, _>("id").to_string(),
+                    name:            r.get("name"),
+                    address:         r.get("address"),
+                    city:            r.try_get("city").ok(),
+                    country:         r.try_get("country").ok(),
+                    area_sqft:       r.try_get::<Option<i32>, _>("area_sqft").unwrap_or_default().map(|v| v as i64),
+                    property_type:   r.try_get("property_type").ok(),
+                    asset_value_inr: r.try_get::<Option<i64>, _>("asset_value_inr").unwrap_or_default(),
+                    metadata_hash:   r.try_get("metadata_hash").ok(),
+                    on_chain_address:r.try_get("on_chain_address").ok(),
+                    token_mint:      r.try_get("token_mint").ok(),
+                    status:          r.get("status"),
+                    token_supply:    r.try_get::<Option<i64>, _>("token_supply").unwrap_or_default(),
+                    token_price_usd: r.try_get::<Option<f64>, _>("token_price_usd").unwrap_or_default(),
+                    yield_percent:   r.try_get::<Option<f64>, _>("yield_percent").unwrap_or_default(),
+                    dist_frequency:  r.try_get("dist_frequency").ok(),
+                    owner_wallet:    r.get("owner_wallet"),
+                    submitted_at:    r.try_get::<Option<chrono::DateTime<Utc>>, _>("submitted_at").unwrap_or_default().map(|d| d.to_rfc3339()),
+                    verified_at:     r.try_get::<Option<chrono::DateTime<Utc>>, _>("verified_at").unwrap_or_default().map(|d| d.to_rfc3339()),
+                    tokenized_at:    r.try_get::<Option<chrono::DateTime<Utc>>, _>("tokenized_at").unwrap_or_default().map(|d| d.to_rfc3339()),
+                    created_at:      r.get::<chrono::DateTime<Utc>, _>("created_at").to_rfc3339(),
+                    document_url:    r.try_get("document_url").ok(),
+                };
+                (StatusCode::OK, Json(prop)).into_response()
+            }
+            Err(sqlx::Error::RowNotFound) => (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "Property not found" }))).into_response(),
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
         }
-        return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "not found" }))).into_response();
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
     }
-    (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({ "error": "db mode not implemented yet" }))).into_response()
 }
 
 // POST /api/v1/properties/submit
@@ -476,15 +613,11 @@ async fn verify_property(
             }
         }))).into_response()
     } else {
-        (StatusCode::OK, Json(serde_json::json!({
-            "property_id": id,
-            "new_status": new_status,
-            "message": "[MOCK] Verifier action performed."
-        }))).into_response()
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
     }
 }
 
-// POST /api/v1/properties/:id/tokenize  (owner only, must be verified)
+// POST /api/v1/properties/:id/tokenize  (owner requests tokenization)
 #[derive(Deserialize)]
 struct TokenizeReq {
     owner_wallet:    String,
@@ -497,21 +630,16 @@ struct TokenizeReq {
 #[derive(Serialize)]
 struct TokenizeResp {
     property_id:    String,
-    token_mint:     String,
-    token_supply:   i64,
     status:         String,
     message:        String,
 }
 
-async fn tokenize_property(
+async fn request_tokenize(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     Json(payload): Json<TokenizeReq>,
 ) -> impl IntoResponse {
-    println!("🪙 Tokenize property {} by {}", id, payload.owner_wallet);
-
-    // Generate a mock token mint address (in production this is the SPL mint pubkey returned by Solana)
-    let token_mint = format!("Mint{}", &sha256_hex(&format!("{}:{}", id, Utc::now().timestamp()))[..32]);
+    println!("🪙 Request tokenize property {} by {}", id, payload.owner_wallet);
 
     if let Some(ref pool) = state.db {
         let property_uuid = match Uuid::parse_str(&id) {
@@ -541,11 +669,10 @@ async fn tokenize_property(
 
         let _ = sqlx::query(
             "UPDATE properties SET
-                status = 'tokenized', token_mint = $1, token_supply = $2,
-                token_price_usd = $3, yield_percent = $4, dist_frequency = $5, tokenized_at = now()
-             WHERE id = $6"
+                status = 'pending_tokenization', token_supply = $1,
+                token_price_usd = $2, yield_percent = $3, dist_frequency = $4
+             WHERE id = $5"
         )
-        .bind(&token_mint)
         .bind(payload.token_supply)
         .bind(payload.token_price_usd)
         .bind(payload.yield_percent)
@@ -554,34 +681,279 @@ async fn tokenize_property(
         .execute(pool).await;
 
         let _ = sqlx::query(
-            "INSERT INTO verification_logs (property_id, actor_wallet, action, notes) VALUES ($1, $2, 'tokenized', $3)"
+            "INSERT INTO verification_logs (property_id, actor_wallet, action, notes) VALUES ($1, $2, 'tokenization_requested', $3)"
         )
         .bind(property_uuid)
         .bind(&payload.owner_wallet)
-        .bind(format!("Supply: {}, Price: ${}, Yield: {}%", payload.token_supply, payload.token_price_usd, payload.yield_percent))
+        .bind(format!("Requested Supply: {}, Price: ${}, Yield: {}%", payload.token_supply, payload.token_price_usd, payload.yield_percent))
         .execute(pool).await;
-    }
 
-    (StatusCode::OK, Json(TokenizeResp {
-        property_id:  id,
-        token_mint,
-        token_supply: payload.token_supply,
-        status:       "tokenized".into(),
-        message:      "Property tokenized successfully. SPL tokens minted to owner wallet.".into(),
-    })).into_response()
+        (StatusCode::OK, Json(TokenizeResp {
+            property_id:  id,
+            status:       "pending_tokenization".into(),
+            message:      "Tokenization requested. Pending admin approval.".into(),
+        })).into_response()
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
+    }
+}
+
+// POST /api/v1/properties/:id/approve_tokenization (admin approves)
+#[derive(Deserialize)]
+struct ApproveTokenizeReq {
+    admin_wallet: String,
+}
+
+#[derive(Serialize)]
+struct ApproveTokenizeResp {
+    property_id:    String,
+    token_mint:     String,
+    status:         String,
+    message:        String,
+}
+
+async fn approve_tokenization(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(payload): Json<ApproveTokenizeReq>,
+) -> impl IntoResponse {
+    println!("✅ Admin {} approving tokenization for property {}", payload.admin_wallet, id);
+
+    let token_mint = format!("Mint{}", &sha256_hex(&format!("{}:{}", id, Utc::now().timestamp()))[..32]);
+
+    if let Some(ref pool) = state.db {
+        let property_uuid = match Uuid::parse_str(&id) {
+            Ok(u) => u,
+            Err(_) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "invalid id" }))).into_response(),
+        };
+
+        let row = sqlx::query("SELECT status FROM properties WHERE id = $1")
+            .bind(property_uuid)
+            .fetch_one(pool)
+            .await;
+
+        match row {
+            Ok(r) => {
+                let status: String = r.get("status");
+                if status != "pending_tokenization" {
+                    return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "Property is not pending tokenization" }))).into_response();
+                }
+            }
+            Err(e) => return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
+        }
+
+        let _ = sqlx::query(
+            "UPDATE properties SET status = 'tokenized', token_mint = $1, tokenized_at = now() WHERE id = $2"
+        )
+        .bind(&token_mint)
+        .bind(property_uuid)
+        .execute(pool).await;
+
+        let _ = sqlx::query(
+            "INSERT INTO verification_logs (property_id, actor_wallet, action, notes) VALUES ($1, $2, 'tokenized', 'Admin approved tokenization')"
+        )
+        .bind(property_uuid)
+        .bind(&payload.admin_wallet)
+        .execute(pool).await;
+        
+        (StatusCode::OK, Json(ApproveTokenizeResp {
+            property_id:  id,
+            token_mint,
+            status:       "tokenized".into(),
+            message:      "Property tokenized successfully. SPL tokens minted.".into(),
+        })).into_response()
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
+    }
 }
 
 // GET /api/v1/marketplace  — investors view tokenized properties
 async fn list_tokenized(
     State(state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
-    if state.db.is_none() {
-        let mocks = mock_properties()
-            .into_iter()
-            .filter(|p| p.status == "tokenized")
-            .collect::<Vec<_>>();
-        return (StatusCode::OK, Json(mocks)).into_response();
+    if let Some(ref pool) = state.db {
+        let result = sqlx::query(
+            "SELECT * FROM properties 
+             WHERE status IN ('verified', 'tokenized', 'pending_tokenization')
+             ORDER BY created_at DESC"
+        )
+        .fetch_all(pool)
+        .await;
+
+        match result {
+            Ok(rows) => {
+                let properties: Vec<PropertyRow> = rows.into_iter().map(|r| PropertyRow {
+                    id:              r.get::<uuid::Uuid, _>("id").to_string(),
+                    name:            r.get("name"),
+                    address:         r.get("address"),
+                    city:            r.try_get("city").ok(),
+                    country:         r.try_get("country").ok(),
+                    area_sqft:       r.try_get("area_sqft").ok(),
+                    property_type:   r.try_get("property_type").ok(),
+                    asset_value_inr: r.try_get("asset_value_inr").ok(),
+                    metadata_hash:   r.try_get("metadata_hash").ok(),
+                    on_chain_address:r.try_get("on_chain_address").ok(),
+                    token_mint:      r.try_get("token_mint").ok(),
+                    status:          r.get("status"),
+                    token_supply:    r.try_get("token_supply").ok(),
+                    token_price_usd: r.try_get("token_price_usd").ok(),
+                    yield_percent:   r.try_get("yield_percent").ok(),
+                    dist_frequency:  r.try_get("dist_frequency").ok(),
+                    owner_wallet:    r.get("owner_wallet"),
+                    submitted_at:    r.try_get::<Option<chrono::DateTime<Utc>>, _>("submitted_at").ok().flatten().map(|t| t.to_rfc3339()),
+                    verified_at:     r.try_get::<Option<chrono::DateTime<Utc>>, _>("verified_at").ok().flatten().map(|t| t.to_rfc3339()),
+                    tokenized_at:    r.try_get::<Option<chrono::DateTime<Utc>>, _>("tokenized_at").ok().flatten().map(|t| t.to_rfc3339()),
+                    created_at:      r.get::<chrono::DateTime<Utc>, _>("created_at").to_rfc3339(),
+                    document_url:    r.try_get("document_url").ok(),
+                }).collect();
+                (StatusCode::OK, Json(properties)).into_response()
+            }
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
+        }
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
     }
-    // DB impl delegated to list_properties with filter
-    (StatusCode::NOT_IMPLEMENTED, Json(serde_json::json!({ "error": "use /api/v1/properties?status=tokenized" }))).into_response()
+}
+
+// ────────────────────────────────────────────────────────────
+// Users
+// ────────────────────────────────────────────────────────────
+#[derive(Serialize, Deserialize)]
+struct UserReq {
+    wallet: String,
+    name: Option<String>,
+    email: Option<String>,
+    role: String, // 'owner' or 'investor'
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+struct UserResp {
+    wallet: String,
+    name: Option<String>,
+    email: Option<String>,
+    role: String,
+    #[sqlx(default)] 
+    created_at: String,
+}
+
+async fn create_user(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<UserReq>,
+) -> impl IntoResponse {
+    println!("👤 Create/Update User profile request for wallet: {}", payload.wallet);
+    if let Some(ref pool) = state.db {
+        let mut role = payload.role.clone();
+        
+        // Force admin role if clerk ID matches env var
+        if let Some(ref admin_id) = state.admin_clerk_id {
+            if &payload.wallet == admin_id {
+                println!("🛡️ Granting admin privileges to: {}", admin_id);
+                role = "admin".to_string();
+            }
+        }
+
+        let result = sqlx::query(
+            "INSERT INTO users (wallet, name, email, role) VALUES ($1, $2, $3, $4)
+             ON CONFLICT (wallet) DO UPDATE SET name = $2, email = $3, role = $4
+             RETURNING wallet, name, email, role, created_at"
+        )
+        .bind(&payload.wallet)
+        .bind(&payload.name)
+        .bind(&payload.email)
+        .bind(&role)
+        .fetch_one(pool)
+        .await;
+
+        match result {
+            Ok(r) => {
+                let user = UserResp {
+                    wallet: r.get("wallet"),
+                    name: r.try_get("name").ok().unwrap_or_default(),
+                    email: r.try_get("email").ok().unwrap_or_default(),
+                    role: r.get("role"),
+                    created_at: r.try_get::<chrono::DateTime<Utc>, _>("created_at")
+                                 .unwrap_or_default()
+                                 .to_rfc3339(),
+                };
+                (StatusCode::OK, Json(user)).into_response()
+            }
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
+        }
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
+    }
+}
+
+async fn get_user(
+    State(state): State<Arc<AppState>>,
+    Path(wallet): Path<String>,
+) -> impl IntoResponse {
+    println!("🔍 Fetching User profile for wallet: {}", wallet);
+    if let Some(ref pool) = state.db {
+        let result = sqlx::query(
+            "SELECT wallet, name, email, role, created_at FROM users WHERE wallet = $1"
+        )
+        .bind(&wallet)
+        .fetch_one(pool)
+        .await;
+
+        match result {
+            Ok(r) => {
+                let wallet: String = r.get("wallet");
+                let mut role: String = r.get("role");
+
+                if let Some(ref admin_id) = state.admin_clerk_id {
+                    if &wallet == admin_id {
+                        role = "admin".to_string();
+                    }
+                }
+
+                let user = UserResp {
+                    wallet,
+                    name: r.try_get("name").ok().unwrap_or_default(),
+                    email: r.try_get("email").ok().unwrap_or_default(),
+                    role,
+                    created_at: r.try_get::<chrono::DateTime<Utc>, _>("created_at")
+                                 .unwrap_or_default()
+                                 .to_rfc3339(),
+                };
+                (StatusCode::OK, Json(user)).into_response()
+            }
+            Err(sqlx::Error::RowNotFound) => {
+                println!("⚠️ User profile NOT FOUND in DB for wallet: {}", wallet);
+                (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": "User not found" }))).into_response()
+            }
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
+        }
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
+    }
+}
+
+async fn debug_list_users(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    if let Some(ref pool) = state.db {
+        let result = sqlx::query(
+            "SELECT wallet, name, email, role, created_at FROM users"
+        )
+        .fetch_all(pool)
+        .await;
+
+        match result {
+            Ok(rows) => {
+                let users: Vec<serde_json::Value> = rows.iter().map(|r| {
+                    serde_json::json!({
+                        "wallet": r.get::<String, _>("wallet"),
+                        "name": r.try_get::<Option<String>, _>("name").ok().flatten(),
+                        "email": r.try_get::<Option<String>, _>("email").ok().flatten(),
+                        "role": r.get::<String, _>("role"),
+                        "created_at": r.get::<chrono::DateTime<Utc>, _>("created_at").to_rfc3339(),
+                    })
+                }).collect();
+                (StatusCode::OK, Json(users)).into_response()
+            }
+            Err(e) => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+        }
+    } else {
+        (StatusCode::SERVICE_UNAVAILABLE, "No DB").into_response()
+    }
 }

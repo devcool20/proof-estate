@@ -2,11 +2,13 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { listProperties, type Property } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
 
 const STATUS_LABEL: Record<string, { label: string; color: string; icon: string }> = {
   draft:                { label: "Draft",        color: "bg-slate-100 text-slate-500 border-slate-200",  icon: "draft" },
   pending_verification: { label: "Under Review", color: "bg-amber-100 text-amber-700 border-amber-200",  icon: "hourglass_empty" },
   verified:             { label: "Verified",     color: "bg-green-100 text-green-700 border-green-200",  icon: "verified_user" },
+  pending_tokenization: { label: "Tokenizing",   color: "bg-blue-100 text-blue-700 border-blue-200",     icon: "hourglass_top" },
   tokenized:            { label: "Tokenized",    color: "bg-teal-100 text-teal-700 border-teal-200",     icon: "generating_tokens" },
   rejected:             { label: "Rejected",     color: "bg-red-100 text-red-700 border-red-200",        icon: "cancel" },
 };
@@ -23,13 +25,18 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (!user) {
+        setLoading(false);
+        return;
+    }
     listProperties()
-      .then(setProperties)
+      .then((data) => setProperties(data.filter(p => p.owner_wallet === user.wallet)))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   return (
     <div className="bg-background-light text-slate-900 font-sans min-h-screen flex flex-col antialiased">
@@ -164,6 +171,12 @@ export default function PropertiesPage() {
                           <div className="w-full py-2.5 bg-teal-50 border border-teal-100 text-teal-700 rounded-lg font-semibold text-sm flex items-center justify-center gap-2">
                             <span className="material-symbols-outlined text-[18px]">check_circle</span>
                             Tokenized on Solana
+                          </div>
+                        )}
+                        {prop.status === "pending_tokenization" && (
+                          <div className="w-full py-2.5 bg-blue-50 border border-blue-100 text-blue-700 rounded-lg font-medium text-sm flex items-center justify-center gap-2">
+                            <span className="material-symbols-outlined text-[18px]">hourglass_top</span>
+                            Tokenization Requested
                           </div>
                         )}
                         {prop.status === "pending_verification" && (

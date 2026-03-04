@@ -2,13 +2,11 @@
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getProperty, tokenizeProperty, type Property } from "@/lib/api";
+import { getProperty, requestTokenize, type Property } from "@/lib/api";
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
 import { IDL, PROGRAM_ID, getPropertyPDA } from "@/lib/solana-utils";
-import { Keypair, SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 
 function TokenizeForm() {
   const router = useRouter();
@@ -54,56 +52,16 @@ function TokenizeForm() {
   const totalValue = Number(supply) * Number(priceUsd);
 
   const handleMint = async () => {
-    if (!propId || !property || !publicKey || !signTransaction || !signAllTransactions) {
-      setMintError("Wallet not connected or missing signing permissions.");
+    if (!propId || !property || !publicKey) {
+      setMintError("Wallet not connected.");
       return;
     }
     setIsMinting(true);
     setMintError(null);
     try {
-      // 1. Setup Anchor Provider
-      const mockWallet = {
-        publicKey,
-        signTransaction,
-        signAllTransactions,
-      };
-      const provider = new anchor.AnchorProvider(connection, mockWallet, {
-        preflightCommitment: "confirmed",
-      });
-      const program = new anchor.Program(IDL, provider);
-
-      // 2. Prepare Accounts
-      const [propertyPDA] = getPropertyPDA(property.name); // Using property name as seed per lib.rs
-      const tokenMint = Keypair.generate();
-      const ownerTokenAccount = getAssociatedTokenAddressSync(
-        tokenMint.publicKey,
-        publicKey,
-        false,
-        TOKEN_PROGRAM_ID,
-        ASSOCIATED_TOKEN_PROGRAM_ID
-      );
-
-      // 3. Perform Tokenization on Solana
-      console.log("🚀 Initializing on-chain tokenization...");
-      const txSig = await program.methods
-        .tokenizeProperty(new anchor.BN(supply))
-        .accounts({
-          propertyAccount: propertyPDA,
-          owner: publicKey,
-          tokenMint: tokenMint.publicKey,
-          ownerTokenAccount: ownerTokenAccount,
-          systemProgram: SystemProgram.programId,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          rent: SYSVAR_RENT_PUBKEY,
-          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        })
-        .signers([tokenMint])
-        .rpc();
-
-      console.log("✅ On-chain success! Tx:", txSig);
-
-      // 4. Update Backend
-      const resp = await tokenizeProperty(propId, {
+      console.log("🚀 Requesting tokenization...");
+      
+      const resp = await requestTokenize(propId, {
         owner_wallet:    publicKey.toBase58(),
         token_supply:    Number(supply),
         token_price_usd: Number(priceUsd),
@@ -112,13 +70,13 @@ function TokenizeForm() {
       });
 
       setMintResult({ 
-        token_mint: tokenMint.publicKey.toBase58(), 
-        message: `On-chain tokens minted successfully. Transaction: ${txSig.slice(0, 10)}...` 
+        token_mint: "Pending Admin Approval", 
+        message: `Tokenization request submitted. An admin will review and execute the mint.` 
       });
       setShowModal(false);
     } catch (e: any) {
       console.error(e);
-      setMintError(e.message || "Failed to execute Solana transaction.");
+      setMintError(e.message || "Failed to submit tokenization request.");
     } finally {
       setIsMinting(false);
     }
@@ -359,12 +317,12 @@ function TokenizeForm() {
                 {isMinting ? (
                   <>
                     <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span>
-                    Minting on Devnet...
+                    Submitting Request...
                   </>
                 ) : (
                   <>
                     <span className="material-symbols-outlined text-[20px]">fingerprint</span>
-                    Approve Transaction
+                    Confirm Request
                   </>
                 )}
               </button>
