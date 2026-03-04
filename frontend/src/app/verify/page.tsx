@@ -16,7 +16,7 @@ interface FormData {
   document_url: string;
 }
 
-const STEPS = ["Property Details", "Document Upload", "Review & Submit"];
+const STEPS = ["Property Details", "Document Hash", "Sign & Submit"];
 
 export default function VerifyPage() {
   const { user } = useAuth();
@@ -59,7 +59,7 @@ export default function VerifyPage() {
 
   const handleSubmit = async () => {
     if (!user) {
-        setError("You must be logged in as an Owner to submit a property.");
+        setError("You must be logged in to sign this transaction.");
         return;
     }
     
@@ -90,35 +90,41 @@ export default function VerifyPage() {
   // Success screen
   if (step === 3 && result) {
     return (
-      <div className="bg-background-light min-h-screen flex flex-col items-center justify-center p-8 text-center">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 max-w-lg w-full space-y-6">
-          <div className="size-20 bg-green-100 rounded-full flex items-center justify-center mx-auto ring-8 ring-green-50">
-            <span className="material-symbols-outlined text-4xl text-green-600">check_circle</span>
+      <div className="flex-grow flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#10B981]/10 rounded-full blur-[150px] pointer-events-none"></div>
+        <div className="glass-panel rounded-3xl shadow-card p-6 md:p-12 max-w-lg w-full space-y-6 md:space-y-8 relative z-10 border-white/10">
+          <div className="size-20 md:size-24 bg-[#10B981]/10 rounded-full flex items-center justify-center mx-auto border border-[#10B981]/30 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+            <span className="material-symbols-outlined text-[40px] md:text-[48px] text-[#10B981]">verified</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Submission Received!</h2>
-          <p className="text-slate-500 text-sm">
-            Your property has been submitted for government registry verification. You will be notified once the status changes to <strong>Verified</strong>.
-          </p>
-          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 text-left space-y-2 font-mono text-xs">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Property ID</span>
-              <span className="text-slate-700 max-w-[200px] truncate">{result.property_id}</span>
+          <div>
+            <h2 className="text-3xl font-light text-white heading-display mb-2">Protocol Initiated</h2>
+            <p className="text-slate-400 font-light">
+              Your cryptographic proof has been submitted to the decentralized oracle for registry verification.
+            </p>
+          </div>
+          <div className="bg-black/40 border border-white/5 rounded-2xl p-5 text-left space-y-4 font-mono text-xs overflow-hidden">
+            <div className="flex justify-between items-center pb-3 border-b border-white/5">
+              <span className="text-slate-500 uppercase tracking-widest text-[10px]">Property ID</span>
+              <span className="text-slate-300 max-w-[200px] truncate">{result.property_id}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Metadata Hash</span>
-              <span className="text-slate-700 max-w-[200px] truncate">{result.metadata_hash}</span>
+            <div className="flex justify-between items-center pb-3 border-b border-white/5">
+              <span className="text-slate-500 uppercase tracking-widest text-[10px]">Proof Hash</span>
+              <span className="text-[#00F0FF] max-w-[200px] truncate">{result.metadata_hash}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Status</span>
-              <span className="text-amber-600 font-semibold">Pending Verification</span>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 uppercase tracking-widest text-[10px]">Oracle Status</span>
+              <span className="text-[#F59E0B] font-bold flex items-center gap-2">
+                <span className="size-1.5 rounded-full bg-[#F59E0B] animate-pulse"></span>
+                AWAITING VERIFICATION
+              </span>
             </div>
           </div>
-          <p className="text-xs text-slate-400">{result.message}</p>
+          <p className="text-xs text-slate-500 italic">{result.message}</p>
           <Link
             href="/properties"
-            className="block w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
+            className="block w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-glow"
           >
-            View My Properties
+            Go to Asset Registry
           </Link>
         </div>
       </div>
@@ -126,221 +132,243 @@ export default function VerifyPage() {
   }
 
   return (
-    <div className="bg-background-light text-slate-900 font-sans min-h-screen flex flex-col antialiased">
-      <main className="flex-grow px-6 py-10">
-        <div className="max-w-2xl mx-auto space-y-8">
+    <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
+      <main className="flex-grow px-6 py-12 md:py-20 relative">
+        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="max-w-3xl mx-auto space-y-12 relative z-10">
           
           {/* Header */}
-          <div>
-            <div className="flex items-center gap-2 text-sm text-slate-400 mb-4">
-              <Link href="/properties" className="hover:text-primary transition-colors">My Properties</Link>
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 text-sm text-slate-400 mb-6 font-medium uppercase tracking-widest">
+              <Link href="/properties" className="hover:text-[#D4AF37] transition-colors">Asset Registry</Link>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-              <span className="text-slate-700 font-medium">Submit New Asset</span>
+              <span className="text-white">Initialize Tokenization</span>
             </div>
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Submit Asset for Verification</h2>
-            <p className="text-slate-500 mt-2 text-sm">
-              Once submitted, our system checks the property against government registries and stores an immutable proof on Solana.
+            <h2 className="text-3xl md:text-5xl font-light text-white tracking-tight heading-display mb-4">Digitize Asset</h2>
+            <p className="text-slate-400 font-light max-w-xl mx-auto text-base md:text-lg">
+              Submit legal property deeds. We compute a Zero-Knowledge hash to be verified against the official government registry.
             </p>
           </div>
 
           {/* Stepper */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col md:flex-row items-center justify-between relative px-2 mb-10 gap-8 md:gap-0">
+            <div className="hidden md:block absolute left-6 right-6 top-1/2 -translate-y-1/2 h-[1px] bg-white/10 -z-10"></div>
+            <div className="md:hidden absolute left-1/2 top-6 bottom-6 w-[1px] bg-white/10 -z-10 -translate-x-1/2"></div>
             {STEPS.map((s, i) => (
-              <div key={s} className="flex items-center gap-2 flex-1">
-                <div className={`size-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  i < step ? "bg-primary text-white" : i === step ? "bg-primary text-white ring-4 ring-primary/20" : "bg-slate-100 text-slate-400"
+              <div key={s} className="flex md:flex-col flex-row items-center gap-4 bg-[#060606] px-4 md:px-2 relative">
+                <div className={`size-10 md:size-12 rounded-full flex items-center justify-center font-bold transition-all duration-500 shrink-0 ${
+                  i < step ? "bg-[#D4AF37] text-black shadow-glow" : i === step ? "bg-white/10 text-white border border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.2)]" : "bg-white/5 text-slate-600 border border-white/5"
                 }`}>
-                  {i < step ? <span className="material-symbols-outlined text-[14px]">check</span> : i + 1}
+                  {i < step ? <span className="material-symbols-outlined text-[18px] md:text-[20px]">check</span> : i + 1}
                 </div>
-                <span className={`text-xs font-medium hidden sm:block ${i === step ? "text-slate-900" : "text-slate-400"}`}>{s}</span>
-                {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 ${i < step ? "bg-primary" : "bg-slate-100"}`} />}
+                <span className={`text-[10px] md:text-xs font-bold uppercase tracking-widest md:absolute md:-bottom-8 md:translate-y-2 whitespace-nowrap ${i === step ? "text-[#D4AF37]" : "text-slate-500"}`}>{s}</span>
               </div>
             ))}
           </div>
 
+          <div className="mt-16"></div>
+
           {/* Form Card */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-6">
+          <div className="glass-panel rounded-3xl shadow-card p-6 md:p-10 border-white/10 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#D4AF37] to-[#00F0FF] opacity-50"></div>
 
             {/* Step 0: Property Details */}
             {step === 0 && (
-              <>
-                <h3 className="text-lg font-bold text-slate-900">Property Details</h3>
-                <div className="space-y-4">
-                  <label className="block">
-                    <span className="text-sm font-medium text-slate-700 block mb-1">Property Name *</span>
-                    <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Sunrise Commercial Tower, Andheri"
-                      className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
+              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                <h3 className="text-2xl font-light text-white heading-display mb-8">Asset Specifications</h3>
+                <div className="space-y-6">
+                  <label className="block group">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Property Title / Name</span>
+                    <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. The Obsidian Tower"
+                      className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                   </label>
-                  <label className="block">
-                    <span className="text-sm font-medium text-slate-700 block mb-1">Street Address *</span>
-                    <input name="address" value={form.address} onChange={handleChange} placeholder="e.g. Plot 42, MIDC, Andheri East"
-                      className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
+                  <label className="block group">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Physical Address</span>
+                    <input name="address" value={form.address} onChange={handleChange} placeholder="Plot 42, Financial District"
+                      className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                   </label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 block mb-1">City *</span>
-                      <input name="city" value={form.city} onChange={handleChange} placeholder="Mumbai"
-                        className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <label className="block group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">City / Jurisdiction</span>
+                      <input name="city" value={form.city} onChange={handleChange} placeholder="Neo-Mumbai"
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                     </label>
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 block mb-1">Property Type</span>
+                    <label className="block group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Asset Class</span>
                       <select name="property_type" value={form.property_type} onChange={handleChange}
-                        className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm">
-                        <option value="commercial">Commercial</option>
-                        <option value="residential">Residential</option>
-                        <option value="land">Land / Plot</option>
-                        <option value="warehouse">Warehouse</option>
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white font-light text-lg appearance-none">
+                        <option value="commercial">Commercial Space</option>
+                        <option value="residential">Residential Unit</option>
+                        <option value="land">Raw Land / Plot</option>
+                        <option value="warehouse">Industrial / Warehouse</option>
                       </select>
                     </label>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 block mb-1">Area (sq.ft)</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <label className="block group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Total Area (SQ.FT)</span>
                       <input name="area_sqft" value={form.area_sqft} onChange={handleChange} placeholder="5000" type="number"
-                        className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                     </label>
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 block mb-1">Estimated Value (₹)</span>
-                      <input name="asset_value_inr" value={form.asset_value_inr} onChange={handleChange} placeholder="5,00,00,000"
-                        className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm" />
+                    <label className="block group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Market Valuation (INR)</span>
+                      <div className="relative">
+                        <span className="absolute left-5 text-slate-500 font-light top-1/2 -translate-y-1/2 text-lg">₹</span>
+                        <input name="asset_value_inr" value={form.asset_value_inr} onChange={handleChange} placeholder="500,000,000"
+                          className="w-full h-14 pl-10 pr-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                      </div>
                     </label>
                   </div>
-                  <label className="block">
-                    <span className="text-sm font-medium text-slate-700 block mb-1">Owner Wallet Address (Clerk ID)</span>
-                    <input name="owner_wallet" value={form.owner_wallet} readOnly placeholder="Login with Clerk to connect your profile"
-                      className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-slate-100 text-slate-500 cursor-not-allowed outline-none transition-all text-sm font-mono" />
+                  <label className="block group opacity-70">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Connected Principal UID (Clerk)</span>
+                    <input name="owner_wallet" value={form.owner_wallet} readOnly placeholder="Not connected"
+                      className="w-full h-14 px-5 border border-white/5 rounded-xl bg-black/60 text-slate-400 cursor-not-allowed outline-none font-mono text-sm" />
                   </label>
                 </div>
-                <button
-                  onClick={() => setStep(1)}
-                  disabled={!form.name || !form.address || !form.city}
-                  className="w-full py-3 bg-primary hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-xl transition-all"
-                >
-                  Continue
-                </button>
-              </>
+                <div className="mt-10 pt-8 border-t border-white/5 flex justify-end">
+                  <button
+                    onClick={() => setStep(1)}
+                    disabled={!form.name || !form.address || !form.city}
+                    className="w-full sm:w-auto px-10 py-4 bg-[#D4AF37] disabled:bg-white/5 disabled:text-slate-500 disabled:shadow-none text-black font-bold uppercase tracking-widest text-sm rounded-xl transition-all hover:bg-[#F3E5AB] shadow-glow hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Proceed Next
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Step 1: Document Upload */}
             {step === 1 && (
-              <>
-                <h3 className="text-lg font-bold text-slate-900">Upload Documents</h3>
-                <p className="text-sm text-slate-500">Upload your title deed, sale agreement, or government registry document. We'll compute a SHA-256 hash and store it on-chain as immutable proof.</p>
+              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                <h3 className="text-2xl font-light text-white heading-display mb-2">Document Cryptography</h3>
+                <p className="text-white/60 font-light mb-8">Upload the root title deed. We compute a Zero-Knowledge hash to embed in the smart contract.</p>
                 
-                <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 flex flex-col items-center gap-4 hover:border-primary/40 transition-colors">
-                  <div className="size-14 rounded-full bg-primary/5 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-3xl text-primary">upload_file</span>
+                <div className="border border-dashed border-white/20 rounded-2xl p-8 md:p-12 flex flex-col items-center gap-6 bg-black/20 hover:border-[#D4AF37]/50 transition-colors group">
+                  <div className="size-16 md:size-20 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-[#D4AF37]/10 group-hover:text-[#D4AF37] transition-all">
+                    <span className="material-symbols-outlined text-[32px] md:text-[40px] text-white/50 group-hover:text-[#D4AF37]">enhanced_encryption</span>
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-slate-700">Drag & drop or click to upload</p>
-                    <p className="text-xs text-slate-400 mt-1">PDF, JPG, PNG – max 10MB</p>
+                    <p className="font-medium text-white text-lg">Select encrypted file</p>
+                    <p className="text-sm text-slate-500 mt-2">Accepted formats: PDF or High-Res Image (Max 10MB)</p>
                   </div>
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange}
-                    className="hidden" id="doc-upload" />
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} className="hidden" id="doc-upload" />
                   <label htmlFor="doc-upload"
-                    className="px-5 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer transition-colors">
-                    Choose File
+                    className="w-full sm:w-auto px-8 py-3 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-xs md:text-sm font-bold uppercase tracking-widest text-white cursor-pointer transition-all text-center">
+                    Browse Local Storage
                   </label>
                 </div>
 
                 {fileSelected && (
-                  <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-lg p-3">
-                    <span className="material-symbols-outlined text-green-600">description</span>
+                  <div className="mt-6 flex items-center gap-4 bg-[#10B981]/10 border border-[#10B981]/20 rounded-xl p-5">
+                    <span className="material-symbols-outlined text-[#10B981] text-[28px]">lock_closed</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-green-800 truncate">{fileSelected}</p>
-                      <p className="text-xs text-green-600">SHA-256 hash will be computed on upload</p>
+                      <p className="text-base font-medium text-white truncate">{fileSelected}</p>
+                      <p className="text-xs text-[#10B981] font-mono mt-1">Hash SHA-256 awaiting execution</p>
                     </div>
-                    <span className="material-symbols-outlined text-green-600">check_circle</span>
+                    <span className="material-symbols-outlined text-[#10B981]">check_circle</span>
                   </div>
                 )}
 
-                <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-700 flex gap-3">
-                  <span className="material-symbols-outlined shrink-0 mt-0.5">info</span>
+                <div className="mt-8 bg-transparent border border-white/10 rounded-xl p-6 text-sm flex gap-4">
+                  <span className="material-symbols-outlined shrink-0 text-[#00F0FF] mt-1 text-[24px]">info</span>
                   <div>
-                    <p className="font-semibold">Why do we need your documents?</p>
-                    <p className="text-xs text-blue-600 mt-1">
-                      Our system checks your title deed against government land registries (like DIGI-locker / Bhoomi / RERA). Only the cryptographic hash of your document is stored on Solana — never the document itself.
+                    <p className="font-bold text-white uppercase tracking-widest text-[10px] mb-2">Immutable Privacy Protocol</p>
+                    <p className="font-light text-slate-400 leading-relaxed">
+                      Your document's content is never exposed to public ledgers. A deterministic cryptographic sequence representing the file is cross-referenced with Oracle DBs to guarantee authenticity without breaching confidence.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-3">
-                  <button onClick={() => setStep(0)} className="flex-1 py-3 border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all">Back</button>
-                  <button onClick={() => setStep(2)} className="flex-1 py-3 bg-primary hover:bg-slate-800 text-white font-bold rounded-xl transition-all">Continue</button>
+                <div className="mt-10 pt-8 border-t border-white/5 flex flex-col sm:flex-row gap-4">
+                  <button onClick={() => setStep(0)} className="w-full sm:flex-1 py-4 border border-white/10 text-slate-300 hover:text-white font-bold uppercase tracking-widest text-sm rounded-xl hover:bg-white/5 transition-all order-2 sm:order-1">Go Back</button>
+                  <button onClick={() => setStep(2)} className="w-full sm:flex-[2] py-4 bg-[#00F0FF] text-black font-bold uppercase tracking-widest text-sm rounded-xl transition-all shadow-[0_0_15px_rgba(0,240,255,0.3)] hover:scale-[1.02] active:scale-[0.98] order-1 sm:order-2">Confirm Hash & Proceed</button>
                 </div>
-              </>
+              </div>
             )}
 
             {/* Step 2: Review & Submit */}
             {step === 2 && (
-              <>
-                <h3 className="text-lg font-bold text-slate-900">Review & Submit</h3>
-                <div className="space-y-3 text-sm">
-                  {[
-                    ["Property Name", form.name],
-                    ["Address", `${form.address}, ${form.city}`],
-                    ["Type", form.property_type],
-                    ["Area", form.area_sqft ? `${Number(form.area_sqft).toLocaleString()} sq.ft` : "—"],
-                    ["Asset Value", form.asset_value_inr ? `₹${form.asset_value_inr}` : "—"],
-                    ["Document", fileSelected ?? "None uploaded"],
-                    ["Owner Wallet", form.owner_wallet || "Not connected"],
-                  ].map(([key, val]) => (
-                    <div key={key} className="flex justify-between py-2 border-b border-slate-50">
-                      <span className="text-slate-400">{key}</span>
-                      <span className="text-slate-900 font-medium max-w-[280px] truncate text-right">{val}</span>
-                    </div>
-                  ))}
+              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                <h3 className="text-2xl font-light text-white heading-display mb-8">Sign & Authorize Submission</h3>
+                
+                <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden text-sm mb-8 font-mono">
+                  <div className="px-6 py-4 bg-white/5 border-b border-white/5">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">Execution Payload</p>
+                  </div>
+                  <div className="divide-y divide-white/5 px-6">
+                    {[
+                      ["PROPERTY.TITLE", form.name],
+                      ["PROPERTY.ADDR", `${form.address}, ${form.city}`],
+                      ["ASSET.CLASS", form.property_type],
+                      ["ASSET.SIZE", form.area_sqft ? `${Number(form.area_sqft).toLocaleString()} SQ.FT` : "UNKNOWN"],
+                      ["ASSET.VALUE", form.asset_value_inr ? `INR ${form.asset_value_inr}` : "UNKNOWN"],
+                      ["DOCUMENT.HASH", fileSelected ?? "NULL_REFERENCE"],
+                      ["PRINCIPAL.UID", form.owner_wallet || "UNKNOWN_CALLER"],
+                    ].map(([key, val]) => (
+                      <div key={key} className="flex flex-col sm:flex-row sm:justify-between py-4 gap-2">
+                        <span className="text-slate-500 text-xs">{key}</span>
+                        <span className="text-[#00F0FF] max-w-[300px] truncate text-left sm:text-right">{val}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-xs text-amber-700 flex gap-2">
-                  <span className="material-symbols-outlined text-[16px] shrink-0">warning</span>
-                  After submission, our verification service will cross-check the property with government registries. This may take 1–3 business days. You cannot edit the submission once it is on-chain.
+                <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/20 rounded-xl p-6 text-sm flex gap-4 mb-8">
+                  <span className="material-symbols-outlined text-[#F59E0B] text-[24px] shrink-0">gavel</span>
+                  <div>
+                    <p className="font-bold text-[#F59E0B] uppercase tracking-widest text-[10px] mb-2">Legal Disclaimer</p>
+                    <p className="text-amber-100/60 font-light leading-relaxed">
+                      By signing this transaction, you agree to submit the hashed asset for cross-verification. Immutable on-chain records cannot be tampered with or revoked.
+                    </p>
+                  </div>
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex gap-2">
-                    <span className="material-symbols-outlined text-[16px]">error</span>
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm text-red-400 flex gap-3 mb-8">
+                    <span className="material-symbols-outlined text-[20px]">error</span>
                     {error}
                   </div>
                 )}
 
-                <div className="flex gap-3">
-                  <button onClick={() => setStep(1)} className="flex-1 py-3 border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all">Back</button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button onClick={() => setStep(1)} className="w-full sm:flex-1 py-4 border border-white/10 text-slate-300 hover:text-white font-bold uppercase tracking-widest text-sm rounded-xl hover:bg-white/5 transition-all order-2 sm:order-1">Decline</button>
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className={`flex-1 py-3 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${isSubmitting ? "bg-slate-400 cursor-not-allowed" : "bg-primary hover:bg-slate-800"}`}
+                    className={`w-full sm:flex-[2] py-4 text-black font-bold uppercase tracking-widest text-sm rounded-xl transition-all flex items-center justify-center gap-3 order-1 sm:order-2 ${isSubmitting ? "bg-slate-400 cursor-wait" : "bg-[#D4AF37] hover:bg-[#F3E5AB] shadow-glow hover:scale-[1.02] active:scale-[0.98]"}`}
                   >
                     {isSubmitting ? (
                       <>
-                        <span className="material-symbols-outlined text-[18px] animate-spin">refresh</span>
-                        Submitting...
+                        <span className="material-symbols-outlined text-[20px] animate-spin">sync</span>
+                        Executing...
                       </>
                     ) : (
                       <>
-                        <span className="material-symbols-outlined text-[18px]">send</span>
-                        Submit for Verification
+                        <span className="material-symbols-outlined text-[20px]">fingerprint</span>
+                        Authorize On-Chain
                       </>
                     )}
                   </button>
                 </div>
-              </>
+              </div>
             )}
           </div>
 
           {/* Info box */}
-          <div className="bg-white rounded-xl border border-slate-100 p-5 space-y-3">
-            <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-primary">account_tree</span>
-              How the Verification Process Works
+          <div className="bg-transparent border border-white/10 rounded-2xl p-6 md:p-8 mt-12">
+            <h4 className="text-xl font-light text-white flex items-center gap-3 mb-6 heading-display">
+              <span className="size-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                <span className="material-symbols-outlined text-[18px] text-[#00F0FF]">account_tree</span>
+              </span>
+              Execution Workflow
             </h4>
-            <ol className="space-y-2 text-sm text-slate-500 list-decimal list-inside">
-              <li>You submit property details and a scanned title deed.</li>
-              <li>Our backend computes a <code className="text-xs bg-slate-100 px-1 rounded">SHA-256</code> hash of your document.</li>
-              <li>The hash is sent to Solana via the <code className="text-xs bg-slate-100 px-1 rounded">initialize_property</code> instruction. Status: <strong className="text-amber-600">Pending</strong>.</li>
-              <li>A trusted verifier checks the document against government registries (RERA / Bhoomi / Municipal records).</li>
-              <li>Once cleared, the verifier calls <code className="text-xs bg-slate-100 px-1 rounded">verify_property</code> on-chain. Status: <strong className="text-green-600">Verified</strong>.</li>
-              <li>You can now tokenize the property into SPL fractional tokens.</li>
+            <ol className="space-y-4 text-slate-400 font-light list-none ml-2 border-l border-white/10 pl-6 relative">
+              <li className="relative"><span className="absolute -left-[30px] top-1.5 size-2 rounded-full bg-white/20"></span>You submit immutable property records & title deed.</li>
+              <li className="relative"><span className="absolute -left-[30px] top-1.5 size-2 rounded-full bg-[#00F0FF] shadow-[0_0_5px_#00F0FF]"></span>Our validators encode a <code className="text-[#00F0FF] bg-white/5 px-1.5 rounded text-xs font-mono ml-1 border border-white/5">SHA-256 ZK Proof</code>.</li>
+              <li className="relative"><span className="absolute -left-[30px] top-1.5 size-2 rounded-full bg-[#F59E0B]"></span>Initialization instruction recorded to Solana mainnet: <strong className="text-[#F59E0B] font-medium uppercase tracking-widest text-[10px] ml-1">Pending</strong>.</li>
+              <li className="relative"><span className="absolute -left-[30px] top-1.5 size-2 rounded-full bg-white/20"></span>Decentralized oracle queries official jurisdictional ledgers.</li>
+              <li className="relative"><span className="absolute -left-[30px] top-1.5 size-2 rounded-full bg-[#10B981]"></span>Oracles attest validity on-chain via smart contracts: <strong className="text-[#10B981] font-medium uppercase tracking-widest text-[10px] ml-1">Verified</strong>.</li>
+              <li className="relative"><span className="absolute -left-[30px] top-1.5 size-2 rounded-full bg-white/20"></span>Asset unlocks for SPL Token-2022 fractionalization.</li>
             </ol>
           </div>
 

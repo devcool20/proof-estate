@@ -1,31 +1,33 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: "Inter", sans-serif;
-  --font-display: "Inter", sans-serif;
-  --font-body: "Inter", sans-serif;
+  --font-sans: var(--font-jakarta), sans-serif;
+  --font-display: var(--font-playfair), serif;
+  --font-body: var(--font-jakarta), sans-serif;
 
-  --color-primary: #0f1729;
-  --color-secondary: #334155;
-  --color-accent: #3b82f6;
+  --color-primary: #D4AF37;
+  --color-primary-hover: #b08d24;
+  --color-secondary: #00F0FF;
+  --color-accent: #0f161c;
 
-  --color-background-light: #f6f7f8;
-  --color-background-dark: #0f1729;
+  --color-background-light: #ffffff;
+  --color-background-dark: transparent;
 
   --color-card-light: #ffffff;
-  --color-card-dark: #0f1729;
+  --color-card-dark: rgba(18, 18, 18, 0.5);
 
   --color-surface-light: #ffffff;
-  --color-surface-dark: #1e293b;
+  --color-surface-dark: rgba(25, 25, 25, 0.4);
 
   --color-text-primary-light: #0f1729;
   --color-text-secondary-light: #64748b;
 
   --color-border-light: #e2e4e9;
-  --color-border-dark: #334155;
+  --color-border-dark: rgba(255, 255, 255, 0.08);
 
-  --shadow-subtle: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+  --shadow-subtle: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+  --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.15);
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -38,16 +40,20 @@
 }
 
 body {
-  background-color: var(--color-background-light);
-  color: #171717;
+  background-color: #060606;
+  color: #ededed;
   font-family: var(--font-sans);
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: var(--color-background-dark);
-    color: #ededed;
-  }
+.glass-panel {
+  background: var(--color-surface-dark);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--color-border-dark);
+}
+
+.heading-display {
+  font-family: var(--font-display);
 }
 
 /* Fix for Flash of Unstyled Icons (FOUI) */
@@ -81,4 +87,64 @@ body {
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
+}
+
+/* Wallet Adapter Custom Theming */
+.wallet-adapter-modal-wrapper {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 24px !important;
+  color: #fff !important;
+  font-family: var(--font-sans) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8) !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.wallet-adapter-modal-title {
+  color: #fff !important;
+  font-family: var(--font-display) !important;
+  font-weight: 300 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.wallet-adapter-modal-list {
+  margin: 0 0 12px !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  border-radius: 12px !important;
+  margin-bottom: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  background: rgba(212, 175, 55, 0.1) !important;
+  border-color: rgba(212, 175, 55, 0.3) !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button span {
+  color: #ccc !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover span {
+  color: #D4AF37 !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button-chevron {
+  filter: invert(1) !important;
+}
+
+.wallet-adapter-modal-list-more {
+  color: #D4AF37 !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  font-weight: 700 !important;
 }

@@ -3,17 +3,12 @@ import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getProperty, requestTokenize, type Property } from "@/lib/api";
-
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import * as anchor from "@coral-xyz/anchor";
-import { IDL, PROGRAM_ID, getPropertyPDA } from "@/lib/solana-utils";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 function TokenizeForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const propId = searchParams.get("id");
-  const { connection } = useConnection();
-  const { publicKey, sendTransaction, signTransaction, signAllTransactions } = useWallet();
+  const { publicKey } = useWallet();
 
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +20,6 @@ function TokenizeForm() {
   const [yieldPct, setYieldPct] = useState("5.2");
   const [frequency, setFrequency] = useState("monthly");
 
-  const [showModal, setShowModal] = useState(false);
   const [isMinting, setIsMinting] = useState(false);
   const [mintResult, setMintResult] = useState<{ token_mint: string; message: string } | null>(null);
   const [mintError, setMintError] = useState<string | null>(null);
@@ -39,9 +33,7 @@ function TokenizeForm() {
     getProperty(propId)
       .then((p) => {
         setProperty(p);
-        if (p.asset_value_inr && p.token_supply) {
-          setSupply(String(p.token_supply));
-        }
+        if (p.token_supply) setSupply(String(p.token_supply));
         if (p.token_price_usd) setPriceUsd(String(p.token_price_usd));
         if (p.yield_percent) setYieldPct(String(p.yield_percent));
       })
@@ -59,8 +51,6 @@ function TokenizeForm() {
     setIsMinting(true);
     setMintError(null);
     try {
-      console.log("🚀 Requesting tokenization...");
-      
       const resp = await requestTokenize(propId, {
         owner_wallet:    publicKey.toBase58(),
         token_supply:    Number(supply),
@@ -70,47 +60,56 @@ function TokenizeForm() {
       });
 
       setMintResult({ 
-        token_mint: "Pending Admin Approval", 
-        message: `Tokenization request submitted. An admin will review and execute the mint.` 
+        token_mint: "AWAITING_ADMIN_THRESHOLD", 
+        message: `Tokenization instruction recorded. ProofEstate multisig must now attest the mint.` 
       });
-      setShowModal(false);
     } catch (e: any) {
-      console.error(e);
       setMintError(e.message || "Failed to submit tokenization request.");
     } finally {
       setIsMinting(false);
     }
   };
 
-  // ── Success screen ────────────────────────────────────────
+  // Success screen
   if (mintResult) {
     return (
-      <div className="bg-background-light min-h-screen flex flex-col items-center justify-center p-8 text-center">
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-10 max-w-lg w-full space-y-6">
-          <div className="size-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto ring-8 ring-teal-50">
-            <span className="material-symbols-outlined text-4xl text-teal-600">generating_tokens</span>
+      <div className="flex-grow flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#00F0FF]/10 rounded-full blur-[150px] pointer-events-none"></div>
+        <div className="glass-panel rounded-3xl shadow-card p-6 md:p-12 max-w-lg w-full space-y-6 md:space-y-8 relative z-10 border-white/10">
+          <div className="size-20 md:size-24 bg-[#00F0FF]/10 rounded-full flex items-center justify-center mx-auto border border-[#00F0FF]/30 shadow-[0_0_30px_rgba(0,240,255,0.2)]">
+            <span className="material-symbols-outlined text-[40px] md:text-[48px] text-[#00F0FF]">generating_tokens</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Tokenized Successfully!</h2>
-          <p className="text-slate-500 text-sm">{mintResult.message}</p>
-          <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 text-left space-y-2 font-mono text-xs">
-            <div className="flex justify-between">
-              <span className="text-slate-400">Token Mint</span>
-              <span className="text-teal-600 max-w-[240px] truncate">{mintResult.token_mint}</span>
+          <div>
+            <h2 className="text-3xl font-light text-white heading-display mb-2">Minting Protocol Initialized</h2>
+            <p className="text-slate-400 font-light">
+              Your asset-backed fractionalization instruction has been submitted to the Solana cluster.
+            </p>
+          </div>
+          <div className="bg-black/40 border border-white/5 rounded-2xl p-5 text-left space-y-4 font-mono text-xs overflow-hidden">
+            <div className="flex justify-between items-center pb-3 border-b border-white/5">
+              <span className="text-slate-500 uppercase tracking-widest text-[10px]">Supply Generated</span>
+              <span className="text-white">{Number(supply).toLocaleString()} FRAC</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Supply</span>
-              <span className="text-slate-700">{Number(supply).toLocaleString()} tokens</span>
+            <div className="flex justify-between items-center pb-3 border-b border-white/5">
+              <span className="text-slate-500 uppercase tracking-widest text-[10px]">Mint Authority</span>
+              <span className="text-[#00F0FF]">PROPERTY_PDA</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Price per token</span>
-              <span className="text-slate-700">${Number(priceUsd).toFixed(2)} USDC</span>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 uppercase tracking-widest text-[10px]">Status</span>
+              <span className="text-[#F59E0B] font-bold flex items-center gap-2">
+                <span className="size-1.5 rounded-full bg-[#F59E0B] animate-pulse"></span>
+                AWAITING MULTISIG
+              </span>
             </div>
+          </div>
+          <div className="text-xs text-slate-500 italic p-3 border border-white/5 rounded-xl bg-white/5">
+             {mintResult.message}
           </div>
           <Link
             href="/properties"
-            className="block w-full py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-slate-800 transition-all"
+            className="block w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] transition-all shadow-glow"
           >
-            Back to My Properties
+            Monitor Asset
           </Link>
         </div>
       </div>
@@ -118,103 +117,115 @@ function TokenizeForm() {
   }
 
   return (
-    <div className={`bg-background-light text-slate-900 font-sans min-h-screen flex flex-col antialiased relative ${showModal ? "overflow-hidden" : ""}`}>
-      <main className={`flex-grow px-6 py-10 transition-opacity duration-300 ${showModal ? "opacity-30 pointer-events-none" : ""}`}>
-        <div className="max-w-5xl mx-auto space-y-8">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm text-slate-400">
-            <Link href="/properties" className="hover:text-primary transition-colors">My Properties</Link>
-            <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-            <span className="text-slate-700 font-medium">Tokenize Asset</span>
-          </div>
-
+    <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
+      <main className="flex-grow px-6 py-12 md:py-20 relative">
+        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-[#00F0FF]/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="max-w-5xl mx-auto space-y-12 relative z-10">
+          
           {/* Header */}
-          <div>
-            <h2 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">Tokenize Verified Asset</h2>
-            <p className="text-slate-500 text-sm">
-              Convert your verified property into fractional SPL tokens on Solana. Investors can then purchase and earn yield proportionally.
+          <div className="text-left space-y-4">
+            <div className="flex items-center gap-2 text-sm text-slate-500 font-medium uppercase tracking-widest">
+              <Link href="/properties" className="hover:text-[#D4AF37] transition-colors">Registry</Link>
+              <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+              <span className="text-white">Fractionalization</span>
+            </div>
+            <h2 className="text-3xl md:text-5xl font-light text-white tracking-tight heading-display">Asset Fractionalization</h2>
+            <p className="text-slate-400 font-light max-w-2xl text-base md:text-lg">
+              Deconstruct your verified physical asset into tradable SPL-Token22 units. This process is non-custodial and cryptographically linked to the property deed.
             </p>
           </div>
 
-          {loading && <div className="bg-white rounded-xl border border-slate-100 h-48 animate-pulse" />}
+          {loading && <div className="glass-panel rounded-3xl h-64 animate-pulse border-white/5" />}
 
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 flex items-center gap-3">
-              <span className="material-symbols-outlined">error</span>
-              {error}
+            <div className="glass-panel border-red-500/20 bg-red-500/5 rounded-2xl p-6 text-red-400 flex items-center gap-4">
+               <span className="material-symbols-outlined text-[32px]">error</span>
+               <p className="font-light">{error}</p>
             </div>
           )}
 
           {property && property.status !== "verified" && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-700 flex items-center gap-3">
-              <span className="material-symbols-outlined">warning</span>
-              This property is <strong>{property.status}</strong>. It must be <strong>Verified</strong> before you can tokenize it.
+            <div className="glass-panel border-[#F59E0B]/20 bg-[#F59E0B]/5 rounded-2xl p-8 text-[#F59E0B] space-y-4">
+               <div className="flex items-center gap-3">
+                 <span className="material-symbols-outlined text-[28px]">gavel</span>
+                 <p className="font-bold uppercase tracking-widest text-xs">Invalid Protocol State</p>
+               </div>
+               <p className="font-light text-amber-100/70">
+                 Property status is currently <strong>{property.status}</strong>. Only <strong>Verified</strong> assets can initiate on-chain fractionalization.
+               </p>
+               <Link href="/properties" className="inline-block px-6 py-2 border border-[#F59E0B]/30 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-[#F59E0B]/10 transition-all">
+                 Return to Registry
+               </Link>
             </div>
           )}
 
           {property && property.status === "verified" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Left: Config */}
-              <div className="lg:col-span-2 space-y-6">
-                {/* Property card */}
-                <div className="bg-white rounded-xl border border-slate-100 p-5 flex items-center gap-4">
-                  <div className="size-12 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-green-600">verified_user</span>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              {/* Params Column */}
+              <div className="lg:col-span-2 space-y-8 text-slate-300">
+                
+                {/* Property Detail Bar */}
+                <div className="glass-panel rounded-2xl p-4 md:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-6 border-white/10">
+                  <div className="size-14 md:size-16 rounded-xl overflow-hidden shrink-0 border border-white/5 bg-slate-900">
+                     <img src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=200" alt="" className="w-full h-full object-cover opacity-60" />
                   </div>
                   <div className="flex-grow min-w-0">
-                    <h3 className="font-bold text-slate-900 truncate">{property.name}</h3>
-                    <p className="text-sm text-slate-400 truncate">{property.address}</p>
+                    <p className="text-[9px] md:text-[10px] font-bold text-[#10B981] uppercase tracking-widest mb-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[12px] md:text-[14px]">verified</span>
+                      Verified Asset
+                    </p>
+                    <h3 className="text-lg md:text-xl font-light text-white truncate heading-display">{property.name}</h3>
+                    <p className="text-[10px] md:text-xs text-slate-500 truncate">{property.address}</p>
                   </div>
-                  <span className="px-2.5 py-1 bg-green-100 text-green-700 border border-green-200 text-xs font-bold rounded-full shrink-0">Verified</span>
                 </div>
 
-                {/* Fractionalization config */}
-                <div className="bg-white rounded-xl border border-slate-100 p-6 space-y-6">
-                  <h4 className="font-bold text-slate-900">Fractionalization Parameters</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 mb-1 block">Total Token Supply</span>
+                {/* Controls */}
+                <div className="glass-panel rounded-3xl p-8 border-white/10 space-y-8">
+                  <h4 className="text-xl font-light text-white heading-display border-b border-white/5 pb-4">Mint Parameters</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <label className="block group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#00F0FF] transition-colors">Total Token Supply</span>
                       <div className="relative">
                         <input type="number" value={supply} onChange={(e) => setSupply(e.target.value)}
-                          className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium" />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">tokens</span>
+                          className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#00F0FF] outline-none transition-all text-white font-light text-lg" />
+                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] uppercase font-bold text-slate-600 tracking-tighter">Units</span>
                       </div>
                     </label>
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 mb-1 block">Price per Token (USDC)</span>
+                    <label className="block group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#00F0FF] transition-colors">Initial Unit Price (USD)</span>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                        <span className="absolute left-5 text-slate-500 font-light top-1/2 -translate-y-1/2 text-lg">$</span>
                         <input type="number" step="0.01" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)}
-                          className="w-full h-11 pl-8 pr-4 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium" />
+                          className="w-full h-14 pl-10 pr-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#00F0FF] outline-none transition-all text-white font-light text-lg" />
                       </div>
                     </label>
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 mb-1 block">Expected Annual Yield</span>
+                    <label className="block group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#00F0FF] transition-colors">Target Annual Yield</span>
                       <div className="relative">
                         <input type="number" step="0.1" value={yieldPct} onChange={(e) => setYieldPct(e.target.value)}
-                          className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium" />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">%</span>
+                          className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#00F0FF] outline-none transition-all text-white font-light text-lg" />
+                        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-lg text-slate-600">%</span>
                       </div>
                     </label>
-                    <label className="block">
-                      <span className="text-sm font-medium text-slate-700 mb-1 block">Distribution Frequency</span>
+                    <label className="block group">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#00F0FF] transition-colors">Yield Distribution</span>
                       <select value={frequency} onChange={(e) => setFrequency(e.target.value)}
-                        className="w-full h-11 px-4 border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all font-medium">
-                        <option value="monthly">Monthly</option>
-                        <option value="quarterly">Quarterly</option>
-                        <option value="annually">Annually</option>
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#00F0FF] outline-none transition-all text-white font-light text-lg appearance-none">
+                        <option value="monthly">Monthly Baseline</option>
+                        <option value="quarterly">Quarterly Yield</option>
+                        <option value="annually">Annual Settlement</option>
                       </select>
                     </label>
                   </div>
 
-                  <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Total Raise (USDC)</span>
-                      <span className="font-bold text-slate-900">${totalValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                  <div className="bg-white/5 border border-white/5 rounded-2xl p-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Total Protocol Raise</span>
+                      <span className="text-2xl font-light text-white">${totalValue.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Annual Yield per Token</span>
-                      <span className="font-semibold text-teal-600">
+                    <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                      <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Annual Yield / Unit</span>
+                      <span className="text-lg font-light text-[#10B981]">
                         ${(Number(priceUsd) * Number(yieldPct) / 100).toFixed(4)} USDC
                       </span>
                     </div>
@@ -222,121 +233,75 @@ function TokenizeForm() {
                 </div>
               </div>
 
-              {/* Right: Execute */}
-              <div className="space-y-4">
-                <div className="bg-primary rounded-2xl p-6 text-white space-y-4 relative overflow-hidden">
-                  <div className="absolute -right-8 -top-8 bg-white/5 size-32 rounded-full" />
-                  <h4 className="font-bold text-sm uppercase tracking-wide text-slate-300 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">gavel</span>
-                    Execute Mint
+              {/* Summary / Execution Sidebar */}
+              <div className="space-y-6">
+                <div className="glass-panel border-[#D4AF37]/20 rounded-3xl p-8 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none group-hover:bg-[#D4AF37]/10 transition-all"></div>
+                  
+                  <h4 className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest mb-6 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">terminal</span>
+                    Mint Summary
                   </h4>
-                  <div className="space-y-3 text-sm relative z-10">
+                  
+                  <div className="space-y-4 font-mono text-xs">
                     {[
-                      ["Protocol",     "SPL Token-2022"],
-                      ["Mint Authority","Property PDA"],
-                      ["Supply",       Number(supply).toLocaleString()],
-                      ["Price",        `$${Number(priceUsd).toFixed(2)} USDC`],
+                      ["PROTOCOL",     "TOKEN-22"],
+                      ["NETWORK",      "SOLANA_MAINNET"],
+                      ["MINT_AUTH",    "PROPERTY_PDA"],
+                      ["TOTAL_SUPPLY",  Number(supply).toLocaleString()],
+                      ["UNIT_PRICE",   `$${Number(priceUsd).toFixed(2)}`],
                     ].map(([k, v]) => (
-                      <div key={k} className="flex justify-between border-b border-white/10 pb-2">
-                        <span className="text-slate-300">{k}</span>
-                        <span className="font-medium">{v}</span>
+                      <div key={k} className="flex justify-between border-b border-white/5 pb-2">
+                        <span className="text-slate-600">{k}</span>
+                        <span className="text-slate-300 font-medium">{v}</span>
                       </div>
                     ))}
                   </div>
+
+                  {mintError && (
+                    <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[11px] text-red-500">
+                      {mintError}
+                    </div>
+                  )}
+
                   <button
-                    onClick={() => setShowModal(true)}
-                    className="w-full py-3 bg-white hover:bg-slate-100 text-primary font-bold rounded-xl transition-all flex items-center justify-center gap-2 relative z-10"
+                    onClick={handleMint}
+                    disabled={isMinting}
+                    className="w-full mt-8 py-5 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-2xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] shadow-glow active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                   >
-                    <span className="material-symbols-outlined text-[20px]">add_circle</span>
-                    Initialize Tokenization
+                    {isMinting ? (
+                      <>
+                        <span className="material-symbols-outlined text-[20px] animate-spin">sync</span>
+                        Executing...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[20px]">fingerprint</span>
+                        Initialize Mint
+                      </>
+                    )}
                   </button>
                 </div>
 
-                <div className="bg-white rounded-xl border border-slate-100 p-4 text-xs text-slate-500 leading-relaxed">
-                  <p className="font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[15px]">shield</span>
-                    Smart Contract Security
+                <div className="glass-panel rounded-2xl p-6 text-[11px] text-slate-500 border-white/10 font-light leading-relaxed">
+                  <p className="font-bold text-white uppercase tracking-widest text-[9px] mb-3 flex items-center gap-1.5 opacity-60">
+                    <span className="material-symbols-outlined text-[14px]">info</span>
+                    Protocol Notice
                   </p>
-                  The <code className="bg-slate-100 px-1 rounded">tokenize_property</code> instruction will only succeed if the Property PDA status is <strong>Verified</strong>. The mint authority is the PDA — permanently non-custodial.
+                  By initializing this mint, you are authorizing the Solana Program to generate immutable ownership fractions. This action requires multisig approval from the primary verifier to finalize registry sync.
                 </div>
               </div>
             </div>
           )}
         </div>
       </main>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="font-bold text-slate-900">Confirm Tokenization</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div className="flex flex-col items-center text-center gap-3">
-                <div className="size-16 rounded-full bg-teal-100 flex items-center justify-center ring-8 ring-teal-50">
-                  <span className="material-symbols-outlined text-3xl text-teal-600">generating_tokens</span>
-                </div>
-                <h4 className="text-lg font-bold text-slate-900">Minting {Number(supply).toLocaleString()} Tokens</h4>
-                <p className="text-sm text-slate-500">Requesting signature for the <code className="bg-slate-100 px-1 rounded text-xs">tokenize_property</code> instruction</p>
-              </div>
-
-              <div className="bg-slate-50 border border-slate-100 rounded-lg p-4 font-mono text-xs space-y-2">
-                {[
-                  ["Program ID",     "Fg6P...sLnS"],
-                  ["Mint Authority", "Property PDA"],
-                  ["Token Supply",   Number(supply).toLocaleString()],
-                  ["Price per Token",`$${Number(priceUsd).toFixed(2)}`],
-                  ["Network Fee",    "~0.000015 SOL"],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between border-b border-slate-100 pb-1 last:border-0 last:pb-0">
-                    <span className="text-slate-400">{k}</span>
-                    <span className="text-slate-700">{v}</span>
-                  </div>
-                ))}
-              </div>
-
-              {mintError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex gap-2">
-                  <span className="material-symbols-outlined text-[16px]">error</span>
-                  {mintError}
-                </div>
-              )}
-
-              <button
-                onClick={handleMint}
-                disabled={isMinting}
-                className={`w-full h-12 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-white ${
-                  isMinting ? "bg-slate-400 cursor-not-allowed" : "bg-primary hover:bg-slate-800"
-                }`}
-              >
-                {isMinting ? (
-                  <>
-                    <span className="material-symbols-outlined text-[20px] animate-spin">refresh</span>
-                    Submitting Request...
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[20px]">fingerprint</span>
-                    Confirm Request
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
 export default function TokenizePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-400">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-700 uppercase tracking-widest text-[10px]">Synchronizing...</div>}>
       <TokenizeForm />
     </Suspense>
   );

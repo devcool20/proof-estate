@@ -8,9 +8,10 @@ interface AuthContextType {
     user: User | null;
     loading: boolean;
     refreshUser: () => Promise<void>;
+    setUser: (user: User | null) => void;
 }
 
-const AuthContext = createContext<AuthContextType>({ user: null, loading: false, refreshUser: async () => {} });
+const AuthContext = createContext<AuthContextType>({ user: null, loading: false, refreshUser: async () => {}, setUser: () => {} });
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -91,60 +92,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [isLoaded, isSignedIn, clerkUser]);
 
     return (
-        <AuthContext.Provider value={{ user: dbUser, loading, refreshUser: async () => { if (clerkUser) await fetchUser(clerkUser.id); } }}>
+        <AuthContext.Provider value={{ user: dbUser, loading, refreshUser: async () => { if (clerkUser) await fetchUser(clerkUser.id); }, setUser: setDbUser }}>
             {children}
             
             {showRegistration && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-2">Create Profile</h2>
-                        <p className="text-slate-500 mb-6 text-sm">Tell us how you want to use ProofEstate.</p>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                    <div className="glass-panel border-white/10 rounded-3xl p-8 max-w-md w-full shadow-[0_0_40px_rgba(212,175,55,0.1)] relative">
+                        <h2 className="text-3xl heading-display font-light text-white mb-2">Initialize Profile</h2>
+                        <p className="text-slate-400 font-light mb-8 text-sm">Configure your principal identity for protocol tracking.</p>
                         
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">I am a...</label>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-3">Protocol Role</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button 
                                         onClick={() => setRegRole("investor")}
-                                        className={`p-3 rounded-xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${regRole === "investor" ? "border-primary bg-primary/5 text-primary" : "border-slate-100 text-slate-500 hover:border-slate-300"}`}
+                                        className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all group ${regRole === "investor" ? "border-[#00F0FF]/30 bg-[#00F0FF]/10 text-[#00F0FF] shadow-[0_0_15px_rgba(0,240,255,0.15)]" : "border-white/5 bg-black/40 text-slate-500 hover:border-white/20"}`}
                                     >
-                                        <span className="material-symbols-outlined text-[24px]">trending_up</span>
-                                        Investor
+                                        <span className="material-symbols-outlined text-[24px]">monitoring</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">Investor</span>
                                     </button>
                                     <button 
                                         onClick={() => setRegRole("owner")}
-                                        className={`p-3 rounded-xl border-2 font-semibold flex flex-col items-center gap-2 transition-all ${regRole === "owner" ? "border-primary bg-primary/5 text-primary" : "border-slate-100 text-slate-500 hover:border-slate-300"}`}
+                                        className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all group ${regRole === "owner" ? "border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.15)]" : "border-white/5 bg-black/40 text-slate-500 hover:border-white/20"}`}
                                     >
-                                        <span className="material-symbols-outlined text-[24px]">home_work</span>
-                                        Owner
+                                        <span className="material-symbols-outlined text-[24px]">domain</span>
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">Owner</span>
                                     </button>
                                 </div>
                             </div>
                             
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 mb-1">Name / Organization</label>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Legal Entity / Name</label>
                                 <input 
                                     type="text" 
                                     value={regName}
                                     onChange={(e) => setRegName(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-slate-50"
-                                    placeholder="Enter your name"
+                                    className="w-full h-12 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white font-light text-sm"
+                                    placeholder="Entity Name"
                                 />
                             </div>
                             
-                            <div className="flex gap-2 mt-4">
+                            <div className="flex gap-3 mt-8 pt-4 border-t border-white/5">
                                 <button
                                     onClick={handleCancelRegistration}
-                                    className="w-1/3 py-3.5 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                                    className="w-1/3 py-4 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-widest text-[10px] transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     onClick={handleRegister}
                                     disabled={regLoading || !regName.trim()}
-                                    className="w-2/3 py-3.5 rounded-xl bg-primary text-white font-bold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="w-2/3 py-4 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] shadow-glow text-black font-bold uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 transition-all flex justify-center items-center"
                                 >
-                                    {regLoading ? "Saving..." : "Create Profile"}
+                                    {regLoading ? "Initializing..." : "Commit Profile"}
                                 </button>
                             </div>
                         </div>

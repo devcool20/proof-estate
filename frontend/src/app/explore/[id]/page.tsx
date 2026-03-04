@@ -26,20 +26,20 @@ export default function PropertyInvestPage({ params }: { params: Promise<{ id: s
 
   if (loading) {
     return (
-      <div className="flex bg-background-light min-h-screen items-center justify-center">
-        <span className="material-symbols-outlined animate-spin text-4xl text-primary">refresh</span>
+      <div className="flex-grow flex items-center justify-center min-h-screen">
+        <span className="material-symbols-outlined animate-spin text-4xl text-[#00F0FF]">refresh</span>
       </div>
     );
   }
 
   if (error || !property) {
     return (
-      <div className="flex bg-background-light min-h-screen items-center justify-center">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-red-100 text-center text-red-600">
-          <span className="material-symbols-outlined text-4xl mb-4">error</span>
-          <p className="font-bold">Error loading property</p>
-          <p className="text-sm">{error || "Property not found"}</p>
-          <Link href="/explore" className="mt-6 inline-block text-primary hover:underline">Back to Marketplace</Link>
+      <div className="flex-grow flex items-center justify-center min-h-screen p-6">
+        <div className="glass-panel p-12 rounded-3xl border-red-500/20 text-center space-y-4 max-w-md w-full">
+          <span className="material-symbols-outlined text-red-500 text-6xl">error</span>
+          <h1 className="text-2xl font-light text-white heading-display">Error loading asset</h1>
+          <p className="text-slate-500 font-light">{error || "Asset not found in protocol registry."}</p>
+          <Link href="/explore" className="inline-block mt-4 text-[#D4AF37] border-b border-[#D4AF37]/30 hover:border-[#D4AF37] transition-all pb-1 text-sm uppercase tracking-widest font-bold">Back to Marketplace</Link>
         </div>
       </div>
     );
@@ -65,145 +65,149 @@ export default function PropertyInvestPage({ params }: { params: Promise<{ id: s
   };
 
   return (
-    <div className="bg-background-light text-slate-900 font-sans min-h-screen">
-      {/* Hero Header with Image */}
-      <div className="relative h-80 w-full bg-slate-800 flex items-center justify-center overflow-hidden">
-         <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url('${getDocUrl(property.document_url)}')` }}></div>
-         <div className="absolute inset-0 bg-gradient-to-t from-background-light to-transparent"></div>
-         <div className="relative z-10 w-full max-w-[1280px] px-4 sm:px-8 lg:px-40 mx-auto flex items-end h-full pb-10">
-            <div className="flex flex-col md:flex-row justify-between w-full md:items-end gap-6">
-                <div>
-                    <div className="flex gap-2 mb-3">
-                        <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-xs font-bold rounded-full">{property.property_type?.toUpperCase() || "REAL ESTATE"}</span>
-                        <span className="px-3 py-1 bg-emerald-500/80 backdrop-blur-md text-white text-xs font-bold rounded-full flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">verified_user</span> ON-CHAIN VERIFIED
-                        </span>
-                    </div>
-                    <h1 className="text-4xl font-extrabold text-white leading-tight">{property.name}</h1>
-                    <p className="text-white/80 flex items-center gap-2 mt-2 font-medium">
-                        <span className="material-symbols-outlined">location_on</span>
-                        {property.address}, {property.city || ""} {property.country || ""}
-                    </p>
+    <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
+      {/* Hero Section */}
+      <div className="relative h-[400px] md:h-[500px] w-full overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${getDocUrl(property.document_url)}')` }}></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#060606] via-[#060606]/40 to-transparent"></div>
+        <div className="absolute inset-0 bg-black/40"></div>
+        
+        <div className="relative z-10 h-full max-w-6xl mx-auto px-6 flex flex-col justify-end pb-12">
+            <div className="flex flex-col gap-6">
+                <div className="flex flex-wrap gap-3">
+                    <span className="px-4 py-1.5 bg-black/60 backdrop-blur-md border border-white/10 text-white text-[10px] font-bold uppercase tracking-widest rounded-full">{property.property_type?.toUpperCase() || "REAL ESTATE"}</span>
+                    <span className="px-4 py-1.5 bg-[#10B981]/20 border border-[#10B981]/30 backdrop-blur-md text-[#10B981] text-[10px] font-bold uppercase tracking-widest rounded-full flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[14px]">verified</span> ON-CHAIN VERIFIED
+                    </span>
+                </div>
+                <div className="space-y-4">
+                  <h1 className="text-4xl md:text-6xl font-light text-white tracking-tight heading-display leading-tight">{property.name}</h1>
+                  <p className="text-slate-300/80 flex items-center gap-2 font-light text-lg">
+                      <span className="material-symbols-outlined text-[#F59E0B]">location_on</span>
+                      {property.address}, {property.city || ""}
+                  </p>
                 </div>
             </div>
-         </div>
+        </div>
       </div>
 
-      <main className="max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-40 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <main className="max-w-6xl mx-auto px-6 py-12 md:py-20 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             {/* Left Column: Details */}
-            <div className="lg:col-span-2 space-y-10">
-                {/* Highlights */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Target Yield</p>
-                        <p className="text-2xl font-bold text-emerald-600">{property.yield_percent}%</p>
+            <div className="lg:col-span-2 space-y-12">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="glass-panel p-6 rounded-2xl border-white/5 space-y-1">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Target Yield</p>
+                        <p className="text-2xl font-light text-[#10B981]">{property.yield_percent}%</p>
                     </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Token Price</p>
-                        <p className="text-2xl font-bold text-slate-900">${property.token_price_usd?.toLocaleString()}</p>
+                    <div className="glass-panel p-6 rounded-2xl border-white/5 space-y-1">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Entry Price</p>
+                        <p className="text-2xl font-light text-white">${property.token_price_usd?.toLocaleString()}</p>
                     </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Total Supply</p>
-                        <p className="text-2xl font-bold text-slate-900">{property.token_supply?.toLocaleString()}</p>
+                    <div className="glass-panel p-6 rounded-2xl border-white/5 space-y-1">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Supply</p>
+                        <p className="text-2xl font-light text-white">{property.token_supply?.toLocaleString()}</p>
                     </div>
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">Distributes</p>
-                        <p className="text-2xl font-bold text-slate-900 capitalize">{property.dist_frequency || "Monthly"}</p>
+                    <div className="glass-panel p-6 rounded-2xl border-white/5 space-y-1">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Frequence</p>
+                        <p className="text-2xl font-light text-white capitalize">{property.dist_frequency || "Monthly"}</p>
                     </div>
                 </div>
 
-                {/* About */}
-                <div>
-                    <h2 className="text-xl font-bold mb-4">About the Asset</h2>
-                    <p className="text-slate-600 leading-relaxed bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                        {property.name} is a verified, institutional-grade commercial property. 
-                        It has been thoroughly authenticated by a trusted government entity or licensed authority before being fractionalized on the Solana network via the ProofEstate platform. 
-                        Tokens represent a legal economic interest in the property's rental revenue and potential capital appreciation.
-                    </p>
+                {/* About Section */}
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-light text-white heading-display border-b border-white/5 pb-4">Asset Intelligence</h2>
+                    <div className="glass-panel border-white/5 rounded-3xl p-8 leading-relaxed font-light text-slate-400">
+                        {property.name} is a verified, institutional-grade commercial asset within the ProofEstate protocol. 
+                        It has been thoroughly authenticated before being fractionalized on the Solana network as SPL-Token-2022 units. 
+                        Each token represents a cryptographically-secured economic interest in the property's throughput and appreciation.
+                    </div>
                 </div>
 
-                {/* Blockchain Verifications */}
-                <div>
-                    <h2 className="text-xl font-bold mb-4">On-Chain Transparency</h2>
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm truncate font-mono text-sm leading-8 py-5">
-                       <div className="px-6 flex flex-col md:flex-row border-b border-slate-100 pb-4 mb-4 gap-2">
-                          <span className="w-40 text-slate-500">Asset Hash</span>
-                          <span className="text-slate-800 text-xs break-all">{property.metadata_hash || "Not available"}</span>
+                {/* Registry Details */}
+                <div className="space-y-6">
+                    <h2 className="text-2xl font-light text-white heading-display border-b border-white/5 pb-4">Registry Integrity</h2>
+                    <div className="glass-panel border-white/5 rounded-3xl p-8 space-y-6 font-mono text-xs">
+                       <div className="flex flex-col md:flex-row justify-between gap-4 border-b border-white/5 pb-6">
+                          <span className="text-slate-600 uppercase tracking-widest">Asset ZK-Hash</span>
+                          <span className="text-white break-all md:text-right md:max-w-sm">{property.metadata_hash || "NULL_IDENTITY"}</span>
                        </div>
-                       <div className="px-6 flex flex-col md:flex-row gap-2">
-                          <span className="w-40 text-slate-500">Token Mint</span>
-                          <span className="text-teal-600 font-bold bg-teal-50 px-2 rounded-md">{property.token_mint || "Not tokenized yet"}</span>
+                       <div className="flex flex-col md:flex-row justify-between gap-4">
+                          <span className="text-slate-600 uppercase tracking-widest">Protocol Mint</span>
+                          <span className="text-[#00F0FF] break-all md:text-right md:max-w-sm">{property.token_mint || "AWAITING_FRACTIONALIZATION"}</span>
                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Right Column: Investment Box */}
+            {/* Right Column: Execution */}
             <div className="lg:col-span-1">
-                <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-100 sticky top-10">
-                    <h3 className="text-2xl font-extrabold text-slate-900 mb-6 flex items-center gap-2">
-                       <span className="material-symbols-outlined text-primary">account_balance_wallet</span>
-                       Invest
+                <div className="glass-panel border-[#D4AF37]/20 rounded-[32px] p-8 sticky top-32 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none group-hover:bg-[#D4AF37]/10 transition-all"></div>
+                    
+                    <h3 className="text-2xl font-light text-white mb-8 heading-display flex items-center gap-3">
+                       <span className="material-symbols-outlined text-[#D4AF37]">account_balance_wallet</span>
+                       Participate
                     </h3>
 
                     {!user || user.role !== "investor" ? (
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                            <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">lock</span>
-                            <p className="text-sm text-slate-600 font-medium">Please connect your wallet and register as an Investor to purchase asset tokens.</p>
+                        <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-center space-y-4">
+                            <span className="material-symbols-outlined text-4xl text-slate-600">lock</span>
+                            <p className="text-xs text-slate-500 font-light leading-relaxed">Identity authorization required. Please sync as an <strong>Investor</strong> to access protocol units.</p>
+                            <Link href="/profile" className="inline-block text-[#D4AF37] font-bold uppercase tracking-widest text-[10px] border-b border-[#D4AF37]/30 hover:border-[#D4AF37] transition-all pb-1">Configure Identity</Link>
                         </div>
                     ) : (
-                        <div className="space-y-6">
-                            <label className="block">
-                                <span className="block text-sm font-bold text-slate-700 mb-2">Investment Amount (USDC)</span>
+                        <div className="space-y-8">
+                            <label className="block group">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-3 group-focus-within:text-[#D4AF37] transition-colors">Investment (USDC)</span>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 text-lg">$</span>
                                     <input 
                                         type="number" 
                                         value={investmentAmount} 
                                         onChange={e => setInvestmentAmount(e.target.value)} 
-                                        min="1" 
-                                        className="w-full bg-slate-50 border border-slate-200 text-slate-900 font-bold text-lg rounded-xl h-14 pl-8 pr-4 focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                        className="w-full bg-black/40 border border-white/10 text-white font-light text-xl rounded-2xl h-16 pl-10 pr-6 focus:border-[#D4AF37] outline-none transition-all"
                                     />
                                 </div>
                             </label>
 
-                            <div className="bg-slate-50 rounded-xl p-4 text-sm space-y-3 border border-slate-100">
+                            <div className="bg-white/5 rounded-2xl p-6 space-y-4 border border-white/5 font-mono text-xs">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-slate-500 font-medium text-xs uppercase">Tokens Received</span>
-                                    <span className="font-bold text-slate-900 text-base">{isNaN(numTokens) ? 0 : numTokens.toLocaleString()}</span>
+                                    <span className="text-slate-600 uppercase">Fractions</span>
+                                    <span className="text-white text-sm">{isNaN(numTokens) ? 0 : numTokens.toLocaleString()} FRAC</span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <span className="text-slate-500 font-medium text-xs uppercase">Est. Annual Yield</span>
-                                    <span className="font-bold text-emerald-600 text-base">+${isNaN(Number(annualYield)) ? 0 : annualYield}</span>
+                                    <span className="text-slate-600 uppercase">Yield P.A.</span>
+                                    <span className="text-[#10B981] text-sm">+${isNaN(Number(annualYield)) ? 0 : annualYield}</span>
                                 </div>
-                                <div className="flex justify-between items-center border-t border-slate-200 pt-3 mt-3">
-                                    <span className="text-slate-500 font-medium text-xs uppercase">Total Supply Ownership</span>
-                                    <span className="font-bold text-slate-900 text-base">{isNaN(Number(ownershipPercent)) ? 0 : ownershipPercent}%</span>
+                                <div className="flex justify-between items-center border-t border-white/5 pt-4">
+                                    <span className="text-slate-600 uppercase">Ownership</span>
+                                    <span className="text-[#00F0FF] text-sm">{isNaN(Number(ownershipPercent)) ? 0 : ownershipPercent}%</span>
                                 </div>
                             </div>
 
                             <button 
                                 onClick={handleInvest}
                                 disabled={isInvesting || !property.token_mint}
-                                className={`w-full h-14 rounded-xl font-bold flex items-center justify-center gap-2 text-white transition-all shadow-md ${isInvesting || !property.token_mint ? 'bg-slate-400 cursor-not-allowed shadow-none' : 'bg-primary hover:bg-slate-800 hover:shadow-lg'}`}
+                                className={`w-full h-16 rounded-2xl font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-3 transition-all shadow-glow ${isInvesting || !property.token_mint ? 'bg-white/5 text-slate-600 cursor-not-allowed shadow-none border border-white/5' : 'bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black hover:scale-[1.02] active:scale-[0.98]'}`}
                             >
                                 {isInvesting ? (
                                     <>
-                                        <span className="material-symbols-outlined animate-spin">refresh</span>
-                                        Confirming Tx...
+                                        <span className="material-symbols-outlined animate-spin text-[20px]">refresh</span>
+                                        Transacting...
                                     </>
                                 ) : !property.token_mint ? (
-                                    <>Awaiting Tokenization</>
+                                    <>Initializing State...</>
                                 ) : (
                                     <>
-                                        <span className="material-symbols-outlined">payments</span>
-                                        Purchase Tokens
+                                        <span className="material-symbols-outlined text-[20px]">payments</span>
+                                        Commit Capital
                                     </>
                                 )}
                             </button>
-                            <p className="text-center text-xs text-slate-400 font-medium flex items-center justify-center gap-1">
-                               <span className="material-symbols-outlined text-[14px]">shield</span> Protected by Solana Smart Contracts
+                            <p className="text-center text-[9px] text-slate-600 uppercase tracking-widest font-bold flex items-center justify-center gap-2">
+                               <span className="material-symbols-outlined text-[14px]">verified_user</span> Protocol Secured
                             </p>
                         </div>
                     )}
@@ -214,20 +218,20 @@ export default function PropertyInvestPage({ params }: { params: Promise<{ id: s
 
       {/* Success Modal */}
       {showSuccessModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-all">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center border border-slate-100 scale-100 transform transition-all duration-300">
-             <div className="size-24 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6 ring-8 ring-emerald-50">
-                <span className="material-symbols-outlined text-5xl text-emerald-500">check_circle</span>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6 bg-black/90 backdrop-blur-md">
+          <div className="glass-panel border-white/10 rounded-[32px] md:rounded-[40px] p-6 md:p-10 text-center max-w-md w-full shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+             <div className="size-20 md:size-24 rounded-full bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+                <span className="material-symbols-outlined text-5xl text-[#10B981]">check_circle</span>
              </div>
-             <h3 className="text-2xl font-extrabold text-slate-900 mb-2">Purchase Successful!</h3>
-             <p className="text-slate-500 font-medium mb-6">
-                 You successfully invested <strong>${Number(investmentAmount).toLocaleString()}</strong> in {property.name}. Tokens have been moved to your wallet.
+             <h3 className="text-3xl font-light text-white mb-2 heading-display">Protocol Sync Complete</h3>
+             <p className="text-slate-400 font-light mb-8 text-lg">
+                 You have committed <strong>${Number(investmentAmount).toLocaleString()}</strong> to {property.name}. Protocol units initialized in your vault.
              </p>
              <button
                onClick={() => setShowSuccessModal(false)}
-               className="w-full h-12 bg-slate-900 hover:bg-primary text-white font-bold rounded-xl transition-all"
+               className="w-full h-16 bg-white/5 hover:bg-white/10 text-white font-bold rounded-2xl transition-all uppercase tracking-widest text-xs border border-white/10"
              >
-                View Profile/Portfolio
+                Return to Registry
              </button>
           </div>
         </div>
