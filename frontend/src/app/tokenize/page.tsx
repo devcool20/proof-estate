@@ -48,23 +48,75 @@ function TokenizeForm() {
       setMintError("Wallet not connected.");
       return;
     }
+    
     setIsMinting(true);
     setMintError(null);
+
     try {
-      const resp = await requestTokenize(propId, {
+      const { Connection, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Keypair } = await import("@solana/web3.js");
+      const { Program, AnchorProvider, BN } = await import("@coral-xyz/anchor");
+      const { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddress } = await import("@solana/spl-token");
+      const idl = await import("@/lib/idl.json");
+
+      const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
+      const provider = new AnchorProvider(connection, (window as any).solana, { preflightCommitment: "confirmed" });
+      const program = new Program(idl as any, provider);
+      const programId = program.programId;
+
+      // Generate a new mint keypair
+      const mintKeypair = Keypair.generate();
+      const ownerTokenAccount = await getAssociatedTokenAddress(
+        mintKeypair.publicKey,
+        publicKey,
+        false,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+
+      // Derive Property PDA
+      const [propertyPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("property"), Buffer.from(property.id)],
+        programId
+      );
+
+      console.log("🚀 Initializing on-chain mint for property:", property.id);
+
+      // 1. Send the Solana Transaction (Owner signs)
+      const tx = await program.methods
+        .tokenizeProperty(new BN(supply))
+        .accounts({
+          propertyAccount: propertyPDA,
+          owner: publicKey,
+          tokenMint: mintKeypair.publicKey,
+          ownerTokenAccount: ownerTokenAccount,
+          systemProgram: SystemProgram.programId,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([mintKeypair])
+        .rpc();
+
+      console.log("✅ On-chain mint complete:", tx);
+
+      // 2. Notify Backend to Sync State
+      await requestTokenize(propId, {
         owner_wallet:    publicKey.toBase58(),
         token_supply:    Number(supply),
         token_price_usd: Number(priceUsd),
         yield_percent:   Number(yieldPct),
         dist_frequency:  frequency as any,
+        token_mint:      mintKeypair.publicKey.toBase58(),
+        tx_signature:    tx,
       });
 
       setMintResult({ 
-        token_mint: "AWAITING_ADMIN_THRESHOLD", 
-        message: `Tokenization instruction recorded. ProofEstate multisig must now attest the mint.` 
+        token_mint: mintKeypair.publicKey.toBase58(), 
+        message: `Success! tokens have been minted to your wallet. Tx: ${tx}` 
       });
     } catch (e: any) {
-      setMintError(e.message || "Failed to submit tokenization request.");
+      console.error("❌ Tokenization error:", e);
+      setMintError(e.message || "Failed to execute on-chain tokenization.");
     } finally {
       setIsMinting(false);
     }
@@ -107,7 +159,7 @@ function TokenizeForm() {
           </div>
           <Link
             href="/properties"
-            className="block w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] transition-all shadow-glow"
+            className="block w-full py-4 bg-gradient-to-r from-primary to-primary-light text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] transition-all shadow-glow"
           >
             Monitor Asset
           </Link>
@@ -125,7 +177,7 @@ function TokenizeForm() {
           {/* Header */}
           <div className="text-left space-y-4">
             <div className="flex items-center gap-2 text-sm text-slate-500 font-medium uppercase tracking-widest">
-              <Link href="/properties" className="hover:text-[#D4AF37] transition-colors">Registry</Link>
+              <Link href="/properties" className="hover:text-primary transition-colors">Registry</Link>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
               <span className="text-white">Fractionalization</span>
             </div>
@@ -235,10 +287,10 @@ function TokenizeForm() {
 
               {/* Summary / Execution Sidebar */}
               <div className="space-y-6">
-                <div className="glass-panel border-[#D4AF37]/20 rounded-3xl p-8 relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/5 rounded-full blur-3xl pointer-events-none group-hover:bg-[#D4AF37]/10 transition-all"></div>
+                <div className="glass-panel border-primary/20 rounded-3xl p-8 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/10 transition-all"></div>
                   
-                  <h4 className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <h4 className="text-[10px] font-bold text-primary uppercase tracking-widest mb-6 flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px]">terminal</span>
                     Mint Summary
                   </h4>
@@ -267,7 +319,7 @@ function TokenizeForm() {
                   <button
                     onClick={handleMint}
                     disabled={isMinting}
-                    className="w-full mt-8 py-5 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-2xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] shadow-glow active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                    className="w-full mt-8 py-5 bg-gradient-to-r from-primary to-primary-light text-black rounded-2xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] shadow-glow active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                   >
                     {isMinting ? (
                       <>

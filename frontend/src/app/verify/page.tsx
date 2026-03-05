@@ -14,6 +14,7 @@ interface FormData {
   asset_value_inr: string;
   owner_wallet: string;
   document_url: string;
+  image_url: string;
 }
 
 const STEPS = ["Property Details", "Document Hash", "Sign & Submit"];
@@ -30,6 +31,7 @@ export default function VerifyPage() {
     asset_value_inr: "",
     owner_wallet: "",
     document_url: "",
+    image_url: "",
   });
 
   useEffect(() => {
@@ -39,6 +41,7 @@ export default function VerifyPage() {
   }, [user]);
 
   const [fileSelected, setFileSelected] = useState<string | null>(null);
+  const [imageFileSelected, setImageFileSelected] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ property_id: string; metadata_hash: string; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +57,15 @@ export default function VerifyPage() {
       setFileSelected(file.name);
       // In production: upload to S3/IPFS and get a URL back
       setForm((prev) => ({ ...prev, document_url: `https://docs.proofestate.io/${file.name}` }));
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFileSelected(file.name);
+      // In production: upload to S3/IPFS and get a URL back
+      setForm((prev) => ({ ...prev, image_url: `https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=2000` }));
     }
   };
 
@@ -77,6 +89,7 @@ export default function VerifyPage() {
           ? Math.round(Number(form.asset_value_inr.replace(/,/g, "")) * 100)
           : undefined,
         document_url:    form.document_url || undefined,
+        image_url:       form.image_url || undefined,
       });
       setResult(resp);
       setStep(3); // success screen
@@ -122,7 +135,7 @@ export default function VerifyPage() {
           <p className="text-xs text-slate-500 italic">{result.message}</p>
           <Link
             href="/properties"
-            className="block w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-glow"
+            className="block w-full py-4 bg-gradient-to-r from-primary to-primary-light text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:scale-[1.02] active:scale-[0.98] transition-all shadow-glow"
           >
             Go to Asset Registry
           </Link>
@@ -134,13 +147,13 @@ export default function VerifyPage() {
   return (
     <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
       <main className="flex-grow px-6 py-12 md:py-20 relative">
-        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="max-w-3xl mx-auto space-y-12 relative z-10">
           
           {/* Header */}
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 text-sm text-slate-400 mb-6 font-medium uppercase tracking-widest">
-              <Link href="/properties" className="hover:text-[#D4AF37] transition-colors">Asset Registry</Link>
+              <Link href="/properties" className="hover:text-primary transition-colors">Asset Registry</Link>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
               <span className="text-white">Initialize Tokenization</span>
             </div>
@@ -157,11 +170,11 @@ export default function VerifyPage() {
             {STEPS.map((s, i) => (
               <div key={s} className="flex md:flex-col flex-row items-center gap-4 bg-[#060606] px-4 md:px-2 relative">
                 <div className={`size-10 md:size-12 rounded-full flex items-center justify-center font-bold transition-all duration-500 shrink-0 ${
-                  i < step ? "bg-[#D4AF37] text-black shadow-glow" : i === step ? "bg-white/10 text-white border border-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.2)]" : "bg-white/5 text-slate-600 border border-white/5"
+                  i < step ? "bg-primary text-black shadow-glow" : i === step ? "bg-white/10 text-white border border-primary shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.2)]" : "bg-white/5 text-slate-600 border border-white/5"
                 }`}>
                   {i < step ? <span className="material-symbols-outlined text-[18px] md:text-[20px]">check</span> : i + 1}
                 </div>
-                <span className={`text-[10px] md:text-xs font-bold uppercase tracking-widest md:absolute md:-bottom-8 md:translate-y-2 whitespace-nowrap ${i === step ? "text-[#D4AF37]" : "text-slate-500"}`}>{s}</span>
+                <span className={`text-[10px] md:text-xs font-bold uppercase tracking-widest md:absolute md:-bottom-8 md:translate-y-2 whitespace-nowrap ${i === step ? "text-primary" : "text-slate-500"}`}>{s}</span>
               </div>
             ))}
           </div>
@@ -170,7 +183,7 @@ export default function VerifyPage() {
 
           {/* Form Card */}
           <div className="glass-panel rounded-3xl shadow-card p-6 md:p-10 border-white/10 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#D4AF37] to-[#00F0FF] opacity-50"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-[#00F0FF] opacity-50"></div>
 
             {/* Step 0: Property Details */}
             {step === 0 && (
@@ -178,25 +191,25 @@ export default function VerifyPage() {
                 <h3 className="text-2xl font-light text-white heading-display mb-8">Asset Specifications</h3>
                 <div className="space-y-6">
                   <label className="block group">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Property Title / Name</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors">Property Title / Name</span>
                     <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. The Obsidian Tower"
-                      className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                      className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                   </label>
                   <label className="block group">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Physical Address</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors">Physical Address</span>
                     <input name="address" value={form.address} onChange={handleChange} placeholder="Plot 42, Financial District"
-                      className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                      className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <label className="block group">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">City / Jurisdiction</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors">City / Jurisdiction</span>
                       <input name="city" value={form.city} onChange={handleChange} placeholder="Neo-Mumbai"
-                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                     </label>
                     <label className="block group">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Asset Class</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors">Asset Class</span>
                       <select name="property_type" value={form.property_type} onChange={handleChange}
-                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white font-light text-lg appearance-none">
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white font-light text-lg appearance-none">
                         <option value="commercial">Commercial Space</option>
                         <option value="residential">Residential Unit</option>
                         <option value="land">Raw Land / Plot</option>
@@ -206,19 +219,32 @@ export default function VerifyPage() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <label className="block group">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Total Area (SQ.FT)</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors">Total Area (SQ.FT)</span>
                       <input name="area_sqft" value={form.area_sqft} onChange={handleChange} placeholder="5000" type="number"
-                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                     </label>
                     <label className="block group">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-[#D4AF37] transition-colors">Market Valuation (INR)</span>
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors">Market Valuation (INR)</span>
                       <div className="relative">
                         <span className="absolute left-5 text-slate-500 font-light top-1/2 -translate-y-1/2 text-lg">₹</span>
                         <input name="asset_value_inr" value={form.asset_value_inr} onChange={handleChange} placeholder="500,000,000"
-                          className="w-full h-14 pl-10 pr-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                          className="w-full h-14 pl-10 pr-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
                       </div>
                     </label>
                   </div>
+
+                  <label className="block group">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors">Cover Image (URL or Upload)</span>
+                    <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" id="image-upload" />
+                    <div className="flex flex-col sm:flex-row gap-4">
+                      <label htmlFor="image-upload" className="h-14 px-5 border border-white/10 rounded-xl bg-black/40 hover:bg-white/5 cursor-pointer flex items-center justify-center text-slate-400 font-light whitespace-nowrap shrink-0 transition-colors">
+                         <span className="material-symbols-outlined mr-2">image</span> {imageFileSelected ? "Image Selected" : "Select Image"}
+                      </label>
+                      <input name="image_url" value={form.image_url} onChange={handleChange} placeholder="e.g. https://images.unsplash.com/..."
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-sm" />
+                    </div>
+                  </label>
+
                   <label className="block group opacity-70">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Connected Principal UID (Clerk)</span>
                     <input name="owner_wallet" value={form.owner_wallet} readOnly placeholder="Not connected"
@@ -229,7 +255,7 @@ export default function VerifyPage() {
                   <button
                     onClick={() => setStep(1)}
                     disabled={!form.name || !form.address || !form.city}
-                    className="w-full sm:w-auto px-10 py-4 bg-[#D4AF37] disabled:bg-white/5 disabled:text-slate-500 disabled:shadow-none text-black font-bold uppercase tracking-widest text-sm rounded-xl transition-all hover:bg-[#F3E5AB] shadow-glow hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full sm:w-auto px-10 py-4 bg-primary disabled:bg-white/5 disabled:text-slate-500 disabled:shadow-none text-black font-bold uppercase tracking-widest text-sm rounded-xl transition-all hover:bg-primary-light shadow-glow hover:scale-[1.02] active:scale-[0.98]"
                   >
                     Proceed Next
                   </button>
@@ -243,9 +269,9 @@ export default function VerifyPage() {
                 <h3 className="text-2xl font-light text-white heading-display mb-2">Document Cryptography</h3>
                 <p className="text-white/60 font-light mb-8">Upload the root title deed. We compute a Zero-Knowledge hash to embed in the smart contract.</p>
                 
-                <div className="border border-dashed border-white/20 rounded-2xl p-8 md:p-12 flex flex-col items-center gap-6 bg-black/20 hover:border-[#D4AF37]/50 transition-colors group">
-                  <div className="size-16 md:size-20 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-[#D4AF37]/10 group-hover:text-[#D4AF37] transition-all">
-                    <span className="material-symbols-outlined text-[32px] md:text-[40px] text-white/50 group-hover:text-[#D4AF37]">enhanced_encryption</span>
+                <div className="border border-dashed border-white/20 rounded-2xl p-8 md:p-12 flex flex-col items-center gap-6 bg-black/20 hover:border-primary/50 transition-colors group">
+                  <div className="size-16 md:size-20 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                    <span className="material-symbols-outlined text-[32px] md:text-[40px] text-white/50 group-hover:text-primary">enhanced_encryption</span>
                   </div>
                   <div className="text-center">
                     <p className="font-medium text-white text-lg">Select encrypted file</p>
@@ -293,7 +319,7 @@ export default function VerifyPage() {
                 
                 <div className="rounded-2xl border border-white/10 bg-black/40 overflow-hidden text-sm mb-8 font-mono">
                   <div className="px-6 py-4 bg-white/5 border-b border-white/5">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">Execution Payload</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Execution Payload</p>
                   </div>
                   <div className="divide-y divide-white/5 px-6">
                     {[
@@ -335,7 +361,7 @@ export default function VerifyPage() {
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className={`w-full sm:flex-[2] py-4 text-black font-bold uppercase tracking-widest text-sm rounded-xl transition-all flex items-center justify-center gap-3 order-1 sm:order-2 ${isSubmitting ? "bg-slate-400 cursor-wait" : "bg-[#D4AF37] hover:bg-[#F3E5AB] shadow-glow hover:scale-[1.02] active:scale-[0.98]"}`}
+                    className={`w-full sm:flex-[2] py-4 text-black font-bold uppercase tracking-widest text-sm rounded-xl transition-all flex items-center justify-center gap-3 order-1 sm:order-2 ${isSubmitting ? "bg-slate-400 cursor-wait" : "bg-primary hover:bg-primary-light shadow-glow hover:scale-[1.02] active:scale-[0.98]"}`}
                   >
                     {isSubmitting ? (
                       <>

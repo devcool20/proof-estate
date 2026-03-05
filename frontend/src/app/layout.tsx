@@ -39,7 +39,7 @@ export default function RootLayout({
  rel="stylesheet"
  />
  </head>
- <body className={`${playfair.variable} ${plusJakarta.variable} font-sans antialiased text-slate-200 bg-[#060606] min-h-screen flex flex-col selection:bg-[#D4AF37] selection:text-black`}>
+ <body className={`${playfair.variable} ${plusJakarta.variable} font-sans antialiased text-slate-200 bg-[#060606] min-h-screen flex flex-col selection:bg-primary selection:text-black`}>
  <div className="fixed inset-0 z-[-1] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 mix-blend-screen pointer-events-none"></div>
  <div className="fixed inset-0 z-[-2] bg-gradient-to-br from-[#0a0a0a] via-[#060606] to-[#040d12] pointer-events-none"></div>
  <AppProviders>

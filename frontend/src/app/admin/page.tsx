@@ -60,7 +60,7 @@ export default function AdminPage() {
                <span className="material-symbols-outlined text-red-500 text-6xl">security</span>
                <h1 className="text-2xl font-light text-white heading-display">Restricted Access</h1>
                <p className="text-slate-500 font-light">Your principal identity is not authorized for protocol administrative functions.</p>
-               <Link href="/" className="inline-block mt-4 text-[#D4AF37] border-b border-[#D4AF37]/30 hover:border-[#D4AF37] transition-all pb-1 text-sm uppercase tracking-widest font-bold">Return to Dashboard</Link>
+               <Link href="/" className="inline-block mt-4 text-primary border-b border-primary/30 hover:border-primary transition-all pb-1 text-sm uppercase tracking-widest font-bold">Return to Dashboard</Link>
             </div>
         </div>
     );
@@ -72,7 +72,7 @@ export default function AdminPage() {
   return (
     <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
       <main className="flex-grow px-6 py-12 md:py-16 relative">
-        <div className="absolute top-0 left-0 w-full h-full bg-[#D4AF37]/5 pointer-events-none blur-[150px] rounded-full"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-primary/5 pointer-events-none blur-[150px] rounded-full"></div>
         
         <div className="max-w-6xl mx-auto space-y-12 relative z-10">
           
@@ -82,7 +82,7 @@ export default function AdminPage() {
               <h2 className="text-3xl md:text-5xl font-light text-white tracking-tight heading-display">Command Center</h2>
               <p className="text-slate-400 font-light text-base md:text-lg">Protocol-level verification and asset-backed minting authority.</p>
             </div>
-            <button onClick={fetchProperties} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#D4AF37] hover:text-[#F3E5AB] transition-colors">
+            <button onClick={fetchProperties} className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary hover:text-primary-light transition-colors">
                <span className={`material-symbols-outlined text-[18px] ${loading ? "animate-spin" : ""}`}>refresh</span>
                Synchronize Ledger
             </button>
@@ -195,7 +195,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleApproveTokenization(p.id)}
                         disabled={processingId === p.id}
-                        className="w-full py-5 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-2xl font-bold uppercase tracking-widest text-[11px] hover:scale-[1.02] shadow-glow active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                        className="w-full py-5 bg-gradient-to-r from-primary to-primary-light text-black rounded-2xl font-bold uppercase tracking-widest text-[11px] hover:scale-[1.02] shadow-glow active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                       >
                         {processingId === p.id ? (
                           <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>

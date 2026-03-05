@@ -95,7 +95,27 @@ async fn main() {
                     );
                 ").execute(&p).await.expect("Failed to initialize verification_logs table");
 
-                // Seed data if empty
+                let _ = sqlx::query("
+                    ALTER TABLE properties ADD COLUMN IF NOT EXISTS image_url VARCHAR;
+                ").execute(&p).await;
+                
+                // Set default images for the specific seeded properties in case they were backfilled with the same image
+                let property_images = vec![
+                    ("d1526e1e-8c27-4978-94d5-802e6b01216e", "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=2000"), // Commercial Tower
+                    ("d2526e1e-8c27-4978-94d5-802e6b01216f", "https://images.unsplash.com/photo-1586528116311-ad8ed7bc55f9?auto=format&fit=crop&q=80&w=2000"), // Warehouse
+                    ("d3526e1e-8c27-4978-94d5-802e6b012170", "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=2000"), // Residential Plot
+                    ("d4526e1e-8c27-4978-94d5-802e6b012171", "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=2000"), // Land
+                    ("d5526e1e-8c27-4978-94d5-802e6b012172", "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=2000"), // Tech Park
+                    ("d6526e1e-8c27-4978-94d5-802e6b012173", "https://images.unsplash.com/photo-1553413077-190dd305871c?auto=format&fit=crop&q=80&w=2000"), // Industrial Shed
+                ];
+                
+                for (id, img) in property_images {
+                    let _ = sqlx::query("UPDATE properties SET image_url = $1 WHERE id = $2 AND (image_url = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=2000' OR image_url IS NULL)")
+                        .bind(img)
+                        .bind(uuid::Uuid::parse_str(id).unwrap())
+                        .execute(&p).await;
+                }
+
                 let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM properties")
                     .fetch_one(&p)
                     .await
@@ -177,8 +197,8 @@ async fn main() {
 
                     for (id, name, addr, ptype, area, val, status, doc) in properties {
                         let _ = sqlx::query("
-                            INSERT INTO properties (id, owner_wallet, name, address, property_type, area_sqft, asset_value_inr, status, document_url, created_at)
-                            VALUES ($1, 'user_2tvQf9oV7jQ3kX9p5m1nR0a8Z3Y', $2, $3, $4, $5, $6, $7, $8, now())
+                            INSERT INTO properties (id, owner_wallet, name, address, property_type, area_sqft, asset_value_inr, status, document_url, image_url, created_at)
+                            VALUES ($1, 'user_2tvQf9oV7jQ3kX9p5m1nR0a8Z3Y', $2, $3, $4, $5, $6, $7, $8, 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=2000', now())
                             ON CONFLICT (id) DO NOTHING
                         ")
                         .bind(id)
@@ -221,9 +241,20 @@ async fn main() {
         }
     }
 
+    let solana = Arc::new(SolanaService::new());
+    
+    // Auto-initialize the verifier PDA on startup
+    let solana_init = solana.clone();
+    tokio::spawn(async move {
+        match solana_init.initialize_verifier().await {
+            Ok(sig) => println!("🛡️ Solana Verifier initialized. Tx: {}", sig),
+            Err(e) => println!("ℹ️ Solana Verifier already active or init skipped: {}", e),
+        }
+    });
+
     let state = Arc::new(AppState { 
         db: pool,
-        solana: Arc::new(SolanaService::new()),
+        solana,
         admin_clerk_id,
     });
 
@@ -290,6 +321,7 @@ struct PropertyRow {
     tokenized_at:      Option<String>,
     created_at:        String,
     document_url:      Option<String>,
+    image_url:         Option<String>,
 }
 
 // ────────────────────────────────────────────────────────────
@@ -324,7 +356,7 @@ async fn list_properties(
             "SELECT id, name, address, city, country, area_sqft, property_type,
                     asset_value_inr, metadata_hash, on_chain_address, token_mint, status,
                     token_supply, token_price_usd, yield_percent, dist_frequency,
-                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at
+                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, document_url, image_url
              FROM properties
              WHERE ($1::text IS NULL OR status = $1)
              ORDER BY created_at DESC",
@@ -366,6 +398,7 @@ async fn list_properties(
                                       .unwrap_or_default()
                                       .to_rfc3339(),
                     document_url:    r.try_get("document_url").ok(),
+                    image_url:       r.try_get("image_url").ok(),
                 }).collect();
                 (StatusCode::OK, Json(props)).into_response()
             }
@@ -391,7 +424,11 @@ async fn get_property(
         };
 
         let result = sqlx::query(
-            "SELECT * FROM properties WHERE id = $1"
+            "SELECT id, name, address, city, country, area_sqft, property_type,
+                    asset_value_inr, metadata_hash, on_chain_address, token_mint, status,
+                    token_supply, token_price_usd, yield_percent, dist_frequency,
+                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, document_url, image_url
+             FROM properties WHERE id = $1"
         )
         .bind(property_uuid)
         .fetch_one(pool)
@@ -422,6 +459,7 @@ async fn get_property(
                     tokenized_at:    r.try_get::<Option<chrono::DateTime<Utc>>, _>("tokenized_at").unwrap_or_default().map(|d| d.to_rfc3339()),
                     created_at:      r.get::<chrono::DateTime<Utc>, _>("created_at").to_rfc3339(),
                     document_url:    r.try_get("document_url").ok(),
+                    image_url:       r.try_get("image_url").ok(),
                 };
                 (StatusCode::OK, Json(prop)).into_response()
             }
@@ -444,6 +482,9 @@ struct SubmitPropertyReq {
     area_sqft:       Option<i64>,
     asset_value_inr: Option<i64>,
     document_url:    Option<String>,
+    image_url:       Option<String>,
+    /// IPFS / Arweave URI to the uploaded title deed document
+    metadata_uri:    Option<String>,
 }
 
 #[derive(Serialize)]
@@ -482,7 +523,8 @@ async fn submit_property(
 
         // 2. Initialize On-Chain
         let mut tx_sig = String::new();
-        match state.solana.initialize_on_chain(&payload.name, &metadata_hash).await {
+        let meta_uri = payload.metadata_uri.as_deref().unwrap_or("");
+        match state.solana.initialize_on_chain(&payload.name, &metadata_hash, meta_uri).await {
             Ok(sig) => tx_sig = sig,
             Err(e) => eprintln!("❌ On-chain initialization failed: {}", e),
         }
@@ -493,8 +535,8 @@ async fn submit_property(
         let result = sqlx::query(
             "INSERT INTO properties
                 (id, owner_wallet, name, address, city, property_type, area_sqft,
-                 asset_value_inr, document_url, metadata_hash, on_chain_address, status, submitted_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending_verification', now())
+                 asset_value_inr, document_url, image_url, metadata_hash, on_chain_address, status, submitted_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending_verification', now())
              RETURNING id"
         )
         .bind(property_id)
@@ -506,6 +548,7 @@ async fn submit_property(
         .bind(payload.area_sqft.map(|v| v as i32))
         .bind(payload.asset_value_inr)
         .bind(&payload.document_url)
+        .bind(&payload.image_url)
         .bind(&metadata_hash)
         .bind(on_chain_address.to_string())
         .fetch_one(pool)
@@ -579,16 +622,14 @@ async fn verify_property(
         .bind(property_uuid)
         .execute(pool).await;
 
-        // 2. Perform On-Chain Verification if approved
+        // 2. Perform On-Chain Verification (approved or rejected)
         let mut tx_sig = String::new();
-        if payload.approved {
-            // Get the property_id name from DB to find the PDA seeds
-            if let Ok(row) = sqlx::query("SELECT name FROM properties WHERE id = $1").bind(property_uuid).fetch_one(pool).await {
-               let name: String = row.get("name");
-               match state.solana.verify_on_chain(&name).await {
-                   Ok(sig) => tx_sig = sig,
-                   Err(e) => eprintln!("❌ On-chain verification failed: {}", e),
-               }
+        // Get the property name to derive the PDA seeds
+        if let Ok(row) = sqlx::query("SELECT name FROM properties WHERE id = $1").bind(property_uuid).fetch_one(pool).await {
+            let name: String = row.get("name");
+            match state.solana.verify_on_chain(&name, payload.approved).await {
+                Ok(sig) => tx_sig = sig,
+                Err(e) => eprintln!("❌ On-chain verification failed: {}", e),
             }
         }
 
@@ -625,6 +666,8 @@ struct TokenizeReq {
     token_price_usd: f64,
     yield_percent:   f64,
     dist_frequency:  Option<String>,
+    token_mint:      Option<String>,
+    tx_signature:    Option<String>,
 }
 
 #[derive(Serialize)]
@@ -667,31 +710,46 @@ async fn request_tokenize(
             Err(e) => return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
         }
 
+        let skip_approval = payload.tx_signature.is_some();
+        let new_status = if skip_approval { "tokenized" } else { "pending_tokenization" };
+
         let _ = sqlx::query(
             "UPDATE properties SET
-                status = 'pending_tokenization', token_supply = $1,
-                token_price_usd = $2, yield_percent = $3, dist_frequency = $4
-             WHERE id = $5"
+                status = $1, token_supply = $2,
+                token_price_usd = $3, yield_percent = $4, dist_frequency = $5,
+                token_mint = $6, tokenized_at = CASE WHEN $1 = 'tokenized' THEN now() ELSE NULL END
+             WHERE id = $7"
         )
+        .bind(new_status)
         .bind(payload.token_supply)
         .bind(payload.token_price_usd)
         .bind(payload.yield_percent)
         .bind(payload.dist_frequency.as_deref().unwrap_or("monthly"))
+        .bind(&payload.token_mint)
         .bind(property_uuid)
         .execute(pool).await;
 
+        let notes = format!(
+            "Supply: {}, Price: ${}, Yield: {}%. On-chain Tx: {}", 
+            payload.token_supply, 
+            payload.token_price_usd, 
+            payload.yield_percent,
+            payload.tx_signature.as_deref().unwrap_or("N/A")
+        );
+
         let _ = sqlx::query(
-            "INSERT INTO verification_logs (property_id, actor_wallet, action, notes) VALUES ($1, $2, 'tokenization_requested', $3)"
+            "INSERT INTO verification_logs (property_id, actor_wallet, action, notes, tx_signature) VALUES ($1, $2, 'tokenized', $3, $4)"
         )
         .bind(property_uuid)
         .bind(&payload.owner_wallet)
-        .bind(format!("Requested Supply: {}, Price: ${}, Yield: {}%", payload.token_supply, payload.token_price_usd, payload.yield_percent))
+        .bind(notes)
+        .bind(payload.tx_signature)
         .execute(pool).await;
 
         (StatusCode::OK, Json(TokenizeResp {
             property_id:  id,
-            status:       "pending_tokenization".into(),
-            message:      "Tokenization requested. Pending admin approval.".into(),
+            status:       new_status.into(),
+            message:      if skip_approval { "Property tokenized on-chain successfully." } else { "Tokenization requested. Pending admin approval." }.into(),
         })).into_response()
     } else {
         (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
@@ -773,7 +831,11 @@ async fn list_tokenized(
 ) -> impl IntoResponse {
     if let Some(ref pool) = state.db {
         let result = sqlx::query(
-            "SELECT * FROM properties 
+            "SELECT id, name, address, city, country, area_sqft, property_type,
+                    asset_value_inr, metadata_hash, on_chain_address, token_mint, status,
+                    token_supply, token_price_usd, yield_percent, dist_frequency,
+                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, document_url, image_url 
+             FROM properties 
              WHERE status IN ('verified', 'tokenized', 'pending_tokenization')
              ORDER BY created_at DESC"
         )
@@ -805,6 +867,7 @@ async fn list_tokenized(
                     tokenized_at:    r.try_get::<Option<chrono::DateTime<Utc>>, _>("tokenized_at").ok().flatten().map(|t| t.to_rfc3339()),
                     created_at:      r.get::<chrono::DateTime<Utc>, _>("created_at").to_rfc3339(),
                     document_url:    r.try_get("document_url").ok(),
+                    image_url:       r.try_get("image_url").ok(),
                 }).collect();
                 (StatusCode::OK, Json(properties)).into_response()
             }

@@ -1,0 +1,34 @@
+const fs = require('fs');
+const path = require('path');
+
+function walk(dir) {
+    let results = [];
+    const list = fs.readdirSync(dir);
+    list.forEach(file => {
+        file = path.join(dir, file);
+        const stat = fs.statSync(file);
+        if (stat && stat.isDirectory()) {
+            results = results.concat(walk(file));
+        } else if (file.endsWith('.tsx') || file.endsWith('.ts') || file.endsWith('.css')) {
+            results.push(file);
+        }
+    });
+    return results;
+}
+
+const files = walk('frontend/src');
+files.forEach(file => {
+    let content = fs.readFileSync(file, 'utf8');
+    let original = content;
+
+    content = content.replace(/\[#D4AF37\]/g, 'theme');
+    content = content.replace(/['"]#D4AF37['"]/g, '"var(--brand-primary)"');
+    // Replace the specific rgb shadow glowing strings
+    content = content.replace(/rgba\(212,175,55,([0-9.]+)\)/g, 'rgba(var(--brand-primary-rgb),$1)');
+    content = content.replace(/rgba\(212, 175, 55, ([0-9.]+)\)/g, 'rgba(var(--brand-primary-rgb), $1)');
+
+    if (content !== original) {
+        fs.writeFileSync(file, content);
+        console.log('Updated: ' + file);
+    }
+});

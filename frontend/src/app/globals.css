@@ -5,8 +5,10 @@
   --font-display: var(--font-playfair), serif;
   --font-body: var(--font-jakarta), sans-serif;
 
-  --color-primary: #D4AF37;
-  --color-primary-hover: #b08d24;
+  --color-primary: var(--brand-primary);
+  --color-primary-hover: var(--brand-primary);
+  /* we can adjust this later if needed */
+  --color-primary-light: var(--brand-primary-light);
   --color-secondary: #00F0FF;
   --color-accent: #0f161c;
 
@@ -27,7 +29,19 @@
 
   --shadow-subtle: 0 8px 32px rgba(0, 0, 0, 0.4);
   --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
-  --shadow-glow: 0 0 20px rgba(212, 175, 55, 0.15);
+  --shadow-glow: 0 0 20px rgba(var(--color-primary-rgb), 0.15);
+}
+
+:root {
+  --brand-primary: #D4AF37;
+  --brand-primary-light: #F3E5AB;
+  --color-primary-rgb: 212, 175, 55;
+}
+
+[data-theme="investor"] {
+  --brand-primary: #00F0FF;
+  --brand-primary-light: #B3FBFF;
+  --color-primary-rgb: 0, 240, 255;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -123,8 +137,8 @@ body {
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button:hover {
-  background: rgba(212, 175, 55, 0.1) !important;
-  border-color: rgba(212, 175, 55, 0.3) !important;
+  background: rgba(var(--color-primary-rgb), 0.1) !important;
+  border-color: rgba(var(--color-primary-rgb), 0.3) !important;
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button span {
@@ -134,7 +148,7 @@ body {
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button:hover span {
-  color: #D4AF37 !important;
+  color: var(--brand-primary) !important;
 }
 
 .wallet-adapter-modal-list .wallet-adapter-button-chevron {
@@ -142,7 +156,7 @@ body {
 }
 
 .wallet-adapter-modal-list-more {
-  color: #D4AF37 !important;
+  color: var(--brand-primary) !important;
   font-size: 12px !important;
   text-transform: uppercase !important;
   letter-spacing: 0.1em !important;

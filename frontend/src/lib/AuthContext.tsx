@@ -91,13 +91,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [isLoaded, isSignedIn, clerkUser]);
 
+    // Dynamically update the app theme based on user role
+    useEffect(() => {
+        if (typeof document !== "undefined") {
+            const activeRole = dbUser ? dbUser.role : regRole;
+            if (activeRole === "investor" || activeRole === "retail") {
+                document.documentElement.setAttribute("data-theme", "investor");
+            } else {
+                document.documentElement.removeAttribute("data-theme");
+            }
+        }
+    }, [dbUser?.role, regRole]);
+
     return (
         <AuthContext.Provider value={{ user: dbUser, loading, refreshUser: async () => { if (clerkUser) await fetchUser(clerkUser.id); }, setUser: setDbUser }}>
             {children}
             
             {showRegistration && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
-                    <div className="glass-panel border-white/10 rounded-3xl p-8 max-w-md w-full shadow-[0_0_40px_rgba(212,175,55,0.1)] relative">
+                    <div className="glass-panel border-white/10 rounded-3xl p-8 max-w-md w-full shadow-[0_0_40px_rgba(var(--color-primary-rgb),0.1)] relative">
                         <h2 className="text-3xl heading-display font-light text-white mb-2">Initialize Profile</h2>
                         <p className="text-slate-400 font-light mb-8 text-sm">Configure your principal identity for protocol tracking.</p>
                         
@@ -114,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     </button>
                                     <button 
                                         onClick={() => setRegRole("owner")}
-                                        className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all group ${regRole === "owner" ? "border-[#D4AF37]/30 bg-[#D4AF37]/10 text-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.15)]" : "border-white/5 bg-black/40 text-slate-500 hover:border-white/20"}`}
+                                        className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all group ${regRole === "owner" ? "border-primary/30 bg-primary/10 text-primary shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.15)]" : "border-white/5 bg-black/40 text-slate-500 hover:border-white/20"}`}
                                     >
                                         <span className="material-symbols-outlined text-[24px]">domain</span>
                                         <span className="text-[10px] font-bold uppercase tracking-widest">Owner</span>
@@ -128,7 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                     type="text" 
                                     value={regName}
                                     onChange={(e) => setRegName(e.target.value)}
-                                    className="w-full h-12 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white font-light text-sm"
+                                    className="w-full h-12 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white font-light text-sm"
                                     placeholder="Entity Name"
                                 />
                             </div>
@@ -143,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                 <button 
                                     onClick={handleRegister}
                                     disabled={regLoading || !regName.trim()}
-                                    className="w-2/3 py-4 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] shadow-glow text-black font-bold uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 transition-all flex justify-center items-center"
+                                    className="w-2/3 py-4 rounded-xl bg-gradient-to-r from-primary to-primary-light shadow-glow text-black font-bold uppercase tracking-widest text-[10px] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 transition-all flex justify-center items-center"
                                 >
                                     {regLoading ? "Initializing..." : "Commit Profile"}
                                 </button>

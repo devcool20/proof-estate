@@ -30,7 +30,7 @@ export function WalletConnectButton() {
       <BaseWalletMultiButton />
       <style jsx global>{`
         .luxury-wallet-button .wallet-adapter-button {
-          background: linear-gradient(90deg, #D4AF37 0%, #F3E5AB 100%) !important;
+          background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-light) 100%) !important;
           color: black !important;
           width: 40px !important;
           height: 40px !important;
@@ -41,7 +41,7 @@ export function WalletConnectButton() {
           align-items: center !important;
           justify-content: center !important;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-          box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2) !important;
+          box-shadow: 0 4px 15px rgba(var(--color-primary-rgb), 0.2) !important;
           border: none !important;
           font-size: 0 !important; /* Hide text */
         }
@@ -60,7 +60,7 @@ export function WalletConnectButton() {
 
         .luxury-wallet-button .wallet-adapter-button:hover {
           transform: translateY(-2px) !important;
-          box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4) !important;
+          box-shadow: 0 8px 25px rgba(var(--color-primary-rgb), 0.4) !important;
           filter: brightness(1.05) !important;
         }
         

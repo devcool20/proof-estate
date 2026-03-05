@@ -23,7 +23,7 @@ export function Navbar() {
         </button>
 
         <Link href="/" className="flex items-center group -ml-1 lg:-ml-2">
-          <h2 className="text-[#D4AF37] text-xl md:text-2xl heading-display font-medium leading-tight tracking-wide transition-transform origin-left group-hover:scale-105">ProofEstate</h2>
+          <h2 className="text-primary text-xl md:text-2xl heading-display font-medium leading-tight tracking-wide transition-transform origin-left group-hover:scale-105">ProofEstate</h2>
         </Link>
         <div className="hidden lg:flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10 shadow-inner">
           <NavLinks pathname={pathname} user={user} />
@@ -32,8 +32,8 @@ export function Navbar() {
       
       <div className="flex items-center gap-3 md:gap-4">
         <label className="hidden md:flex items-center min-w-48 h-10 max-w-64 relative group">
-          <span className="absolute left-3 text-slate-400 material-symbols-outlined text-[20px] transition-colors group-focus-within:text-[#D4AF37]">search</span>
-          <input className="w-full h-full rounded-xl text-sm bg-white/5 border border-white/10 pl-10 pr-4 text-slate-200 focus:outline-none focus:ring-1 focus:ring-[#D4AF37]/50 focus:border-[#D4AF37]/50 transition-all placeholder:text-slate-500 shadow-inner" placeholder="Search portfolio..." />
+          <span className="absolute left-3 text-slate-400 material-symbols-outlined text-[20px] transition-colors group-focus-within:text-primary">search</span>
+          <input className="w-full h-full rounded-xl text-sm bg-white/5 border border-white/10 pl-10 pr-4 text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-slate-500 shadow-inner" placeholder="Search portfolio..." />
         </label>
         
         <Show when="signed-in">
@@ -50,7 +50,7 @@ export function Navbar() {
               <UserButton.MenuItems>
                 <UserButton.Link
                   label="Protocol Settings"
-                  labelIcon={<span className="material-symbols-outlined text-[16px] text-[#D4AF37]">manage_accounts</span>}
+                  labelIcon={<span className="material-symbols-outlined text-[16px] text-primary">manage_accounts</span>}
                   href="/profile"
                 />
               </UserButton.MenuItems>
@@ -60,7 +60,7 @@ export function Navbar() {
 
         <Show when="signed-out">
           <SignInButton mode="modal">
-            <button className="h-9 md:h-10 px-4 md:px-6 font-medium text-xs md:text-sm rounded-xl bg-[#D4AF37] text-black hover:bg-[#b08d24] transition-all shadow-glow hover:scale-[1.02] active:scale-[0.98]">
+            <button className="h-9 md:h-10 px-4 md:px-6 font-medium text-xs md:text-sm rounded-xl bg-primary text-black hover:bg-[#b08d24] transition-all shadow-glow hover:scale-[1.02] active:scale-[0.98]">
               Sign In
             </button>
           </SignInButton>
@@ -114,8 +114,8 @@ function NavLink({ href, active, label, mobile, onClick }: { href: string, activ
       onClick={onClick}
       className={`text-sm font-medium leading-normal transition-all duration-300 ${
         mobile 
-          ? `w-full px-6 py-4 rounded-xl flex items-center ${active ? "text-[#D4AF37] bg-white/10 border border-[#D4AF37]/20" : "text-slate-400 hover:text-white"}`
-          : `px-5 py-2 rounded-lg ${active ? "text-[#D4AF37] bg-white/10 shadow-sm border border-white/5" : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"}`
+          ? `w-full px-6 py-4 rounded-xl flex items-center ${active ? "text-primary bg-white/10 border border-primary/20" : "text-slate-400 hover:text-white"}`
+          : `px-5 py-2 rounded-lg ${active ? "text-primary bg-white/10 shadow-sm border border-white/5" : "text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent"}`
       }`}
     >
       {label}

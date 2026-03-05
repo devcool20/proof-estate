@@ -9,7 +9,7 @@ const STATUS_LABEL: Record<string, { label: string; color: string; icon: string;
   pending_verification: { label: "Under Review", color: "text-[#F59E0B] border-[#F59E0B]/20 bg-[#F59E0B]/5", icon: "hourglass_empty", glow: "shadow-[0_0_10px_rgba(245,158,11,0.2)]" },
   verified:             { label: "Verified",     color: "text-[#10B981] border-[#10B981]/20 bg-[#10B981]/5", icon: "verified_user", glow: "shadow-[0_0_10px_rgba(16,185,129,0.2)]" },
   pending_tokenization: { label: "Tokenizing",   color: "text-[#00F0FF] border-[#00F0FF]/20 bg-[#00F0FF]/5", icon: "hourglass_top", glow: "shadow-[0_0_10px_rgba(0,240,255,0.2)]" },
-  tokenized:            { label: "Tokenized",    color: "text-[#D4AF37] border-[#D4AF37]/20 bg-[#D4AF37]/5", icon: "generating_tokens", glow: "shadow-[0_0_10px_rgba(212,175,55,0.2)]" },
+  tokenized:            { label: "Tokenized",    color: "text-primary border-primary/20 bg-primary/5", icon: "generating_tokens", glow: "shadow-[0_0_10px_rgba(var(--color-primary-rgb),0.2)]" },
   rejected:             { label: "Rejected",     color: "text-red-400 border-red-500/20 bg-red-500/5", icon: "cancel", glow: "" },
 };
 
@@ -41,7 +41,7 @@ export default function PropertiesPage() {
   return (
     <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
       <main className="flex-grow px-6 py-12 md:py-16 relative">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#D4AF37]/5 rounded-full blur-[150px] pointer-events-none"></div>
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[150px] pointer-events-none"></div>
         
         <div className="max-w-6xl mx-auto space-y-12 relative z-10">
           
@@ -53,7 +53,7 @@ export default function PropertiesPage() {
             </div>
             <Link
               href="/verify"
-              className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:scale-[1.05] active:scale-[0.95] transition-all shadow-glow flex items-center justify-center gap-3 shrink-0"
+              className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-black rounded-xl font-bold uppercase tracking-widest text-sm hover:scale-[1.05] active:scale-[0.95] transition-all shadow-glow flex items-center justify-center gap-3 shrink-0"
             >
               <span className="material-symbols-outlined text-[20px]">add_circle</span>
               Register New Asset
@@ -91,14 +91,14 @@ export default function PropertiesPage() {
 
           {!loading && !error && properties.length === 0 && (
             <div className="glass-panel rounded-3xl border-white/10 p-20 flex flex-col items-center text-center gap-8 group">
-              <div className="size-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:border-[#D4AF37]/30 transition-all">
-                <span className="material-symbols-outlined text-5xl text-slate-600 group-hover:text-[#D4AF37]">home_work</span>
+              <div className="size-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center group-hover:scale-110 group-hover:border-primary/30 transition-all">
+                <span className="material-symbols-outlined text-5xl text-slate-600 group-hover:text-primary">home_work</span>
               </div>
               <div className="space-y-3">
                 <h3 className="text-3xl font-light text-white heading-display">Registry Empty</h3>
                 <p className="text-slate-400 font-light max-w-sm mx-auto text-lg leading-relaxed">No validated assets found under this principal identity. Initialize your first tokenization protocol.</p>
               </div>
-              <Link href="/verify" className="px-10 py-4 border border-[#D4AF37] text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+              <Link href="/verify" className="px-10 py-4 border border-primary text-primary hover:bg-primary hover:text-black rounded-xl font-bold uppercase tracking-widest text-sm transition-all shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.1)]">
                 Initialize Asset
               </Link>
             </div>
@@ -109,7 +109,7 @@ export default function PropertiesPage() {
               {properties.map((prop) => {
                 const st = STATUS_LABEL[prop.status] || STATUS_LABEL["draft"];
                 return (
-                  <div key={prop.id} className="glass-panel rounded-3xl shadow-card border-white/10 overflow-hidden flex flex-col group hover:border-[#D4AF37]/30 transition-all hover:-translate-y-1">
+                  <div key={prop.id} className="glass-panel rounded-3xl shadow-card border-white/10 overflow-hidden flex flex-col group hover:border-primary/30 transition-all hover:-translate-y-1">
                     {/* Visual representation */}
                     <div className="h-56 w-full relative overflow-hidden">
                        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800" />
@@ -131,7 +131,7 @@ export default function PropertiesPage() {
                     {/* Meta Body */}
                     <div className="p-6 md:p-8 flex flex-col flex-grow gap-6 relative">
                       <div className="space-y-1">
-                        <h3 className="text-2xl font-light text-white leading-tight heading-display group-hover:text-[#D4AF37] transition-colors">{prop.name}</h3>
+                        <h3 className="text-2xl font-light text-white leading-tight heading-display group-hover:text-primary transition-colors">{prop.name}</h3>
                         <div className="flex items-center gap-2 text-slate-500">
                           <span className="material-symbols-outlined text-[16px]">location_on</span>
                           <p className="text-sm font-light truncate">{prop.address}</p>
@@ -159,8 +159,8 @@ export default function PropertiesPage() {
                           )}
                           {prop.token_mint && (
                             <div className="flex justify-between items-center text-[10px] font-mono">
-                              <span className="text-[#D4AF37] uppercase tracking-widest">SPL.MINT</span>
-                              <span className="text-[#D4AF37]/60 truncate max-w-[120px]">{prop.token_mint}</span>
+                              <span className="text-primary uppercase tracking-widest">SPL.MINT</span>
+                              <span className="text-primary/60 truncate max-w-[120px]">{prop.token_mint}</span>
                             </div>
                           )}
                         </div>
@@ -171,14 +171,14 @@ export default function PropertiesPage() {
                         {prop.status === "verified" && (
                           <Link
                             href={`/tokenize?id=${prop.id}`}
-                            className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-xl font-bold uppercase tracking-widest text-xs shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+                            className="w-full py-4 bg-gradient-to-r from-primary to-primary-light text-black rounded-xl font-bold uppercase tracking-widest text-xs shadow-glow hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3"
                           >
                             <span className="material-symbols-outlined text-[20px]">generating_tokens</span>
                             Initialize Tokenization
                           </Link>
                         )}
                         {prop.status === "tokenized" && (
-                          <div className="w-full py-4 bg-white/5 border border-[#D4AF37]/30 text-[#D4AF37] rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-3">
+                          <div className="w-full py-4 bg-white/5 border border-primary/30 text-primary rounded-xl font-bold uppercase tracking-widest text-[10px] flex items-center justify-center gap-3">
                             <span className="material-symbols-outlined text-[18px]">verified</span>
                             Trading Live on Solana
                           </div>

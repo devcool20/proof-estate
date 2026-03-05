@@ -70,7 +70,7 @@ export default function ProfilePage() {
   return (
     <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
       <main className="flex-grow px-6 py-12 md:py-16 relative">
-        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
         
         <div className="max-w-3xl mx-auto space-y-12 relative z-10">
           
@@ -83,7 +83,7 @@ export default function ProfilePage() {
             
             {/* Identity Group */}
             <div className="glass-panel p-8 rounded-3xl border-white/10 space-y-6">
-              <h3 className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest flex items-center gap-2 mb-4">
+              <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-4">
                 <span className="material-symbols-outlined text-[16px]">fingerprint</span>
                 Primary Identity
               </h3>
@@ -98,24 +98,24 @@ export default function ProfilePage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2 group">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block group-focus-within:text-[#D4AF37] transition-colors">Legal Name / Entity</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block group-focus-within:text-primary transition-colors">Legal Name / Entity</label>
                     <input 
                       type="text" 
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="E.g. Wayne Enterprises"
-                      className="w-full h-12 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white font-light text-sm"
+                      className="w-full h-12 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white font-light text-sm"
                     />
                   </div>
                   
                   <div className="space-y-2 group">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block group-focus-within:text-[#D4AF37] transition-colors">Contact Email</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block group-focus-within:text-primary transition-colors">Contact Email</label>
                     <input 
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="admin@example.com"
-                      className="w-full h-12 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-[#D4AF37] outline-none transition-all text-white font-light text-sm"
+                      className="w-full h-12 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white font-light text-sm"
                     />
                   </div>
                 </div>
@@ -124,17 +124,17 @@ export default function ProfilePage() {
 
             {/* Access Level Group */}
             <div className="glass-panel p-8 rounded-3xl border-white/10 space-y-6">
-              <h3 className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest flex items-center gap-2 mb-4">
+              <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-2 mb-4">
                 <span className="material-symbols-outlined text-[16px]">security</span>
                 Protocol Access Level
               </h3>
               
               {isElevatedRole ? (
-                <div className="bg-white/5 border border-[#D4AF37]/30 rounded-xl p-6 flex items-start gap-4">
-                   <span className="material-symbols-outlined text-[24px] text-[#D4AF37]">shield_locked</span>
+                <div className="bg-white/5 border border-primary/30 rounded-xl p-6 flex items-start gap-4">
+                   <span className="material-symbols-outlined text-[24px] text-primary">shield_locked</span>
                    <div>
                      <p className="text-white font-medium mb-1 tracking-wide">Elevated Role Active</p>
-                     <p className="text-sm font-light text-slate-400">Your account is currently assigned to the <span className="font-bold text-[#D4AF37] uppercase">{user?.role}</span> tier. This access level cannot be downgraded manually via this interface.</p>
+                     <p className="text-sm font-light text-slate-400">Your account is currently assigned to the <span className="font-bold text-primary uppercase">{user?.role}</span> tier. This access level cannot be downgraded manually via this interface.</p>
                    </div>
                 </div>
               ) : (
@@ -160,7 +160,7 @@ export default function ProfilePage() {
                     </label>
 
                     {/* Owner Toggle */}
-                    <label className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-4 ${role === 'owner' ? 'border-[#D4AF37] bg-[#D4AF37]/5 shadow-[0_0_20px_rgba(212,175,55,0.1)]' : 'border-white/5 bg-black/40 hover:border-white/20'}`}>
+                    <label className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-4 ${role === 'owner' ? 'border-primary bg-primary/5 shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.1)]' : 'border-white/5 bg-black/40 hover:border-white/20'}`}>
                       <input 
                         type="radio" 
                         name="role" 
@@ -169,7 +169,7 @@ export default function ProfilePage() {
                         onChange={() => setRole("owner")} 
                         className="sr-only" 
                       />
-                      <div className={`size-10 rounded-full flex items-center justify-center shrink-0 border ${role === 'owner' ? 'bg-[#D4AF37]/10 border-[#D4AF37]/30 text-[#D4AF37]' : 'bg-white/5 border-white/10 text-slate-500'}`}>
+                      <div className={`size-10 rounded-full flex items-center justify-center shrink-0 border ${role === 'owner' ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-white/5 border-white/10 text-slate-500'}`}>
                         <span className="material-symbols-outlined text-[20px]">domain</span>
                       </div>
                       <div>
@@ -203,7 +203,7 @@ export default function ProfilePage() {
               <button 
                 type="submit" 
                 disabled={loading || (!publicKey && !user)}
-                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black rounded-xl font-bold uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 order-1 sm:order-2"
+                className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-primary to-primary-light text-black rounded-xl font-bold uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 order-1 sm:order-2"
               >
                 {loading ? (
                   <>

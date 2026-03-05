@@ -38,7 +38,7 @@ export default function ExplorePage() {
 
           {/* Metrics Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricCard title="Protocol Listings" icon="domain" value={loading ? "—" : `${properties.length}`} color="text-[#D4AF37]" glow="shadow-[0_0_20px_rgba(212,175,55,0.1)]" />
+            <MetricCard title="Protocol Listings" icon="domain" value={loading ? "—" : `${properties.length}`} color="text-primary" glow="shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.1)]" />
             <MetricCard 
               title="Target Yield" 
               icon="percent" 
@@ -78,7 +78,7 @@ export default function ExplorePage() {
                        <ListingCard 
                            key={p.id}
                            id={p.id}
-                           image={getDocUrl(p.document_url)}
+                           image={getDocUrl(p.image_url || p.document_url)}
                            type={p.property_type?.toUpperCase() || "PROPERTY"}
                            name={p.name}
                            location={`${p.city || "Registry Area"}`}

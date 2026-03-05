@@ -37,9 +37,9 @@ export interface Property {
     owner_wallet: string;
     submitted_at?: string;
     verified_at?: string;
-    tokenized_at?: string;
     created_at: string;
     document_url?: string;
+    image_url?: string;
 }
 
 export interface SubmitPropertyPayload {
@@ -51,6 +51,7 @@ export interface SubmitPropertyPayload {
     area_sqft?: number;
     asset_value_inr?: number;
     document_url?: string;
+    image_url?: string;
 }
 
 export interface TokenizePayload {
@@ -59,6 +60,8 @@ export interface TokenizePayload {
     token_price_usd: number;
     yield_percent: number;
     dist_frequency?: DistFrequency;
+    token_mint?: string;
+    tx_signature?: string;
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {

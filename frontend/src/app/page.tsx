@@ -45,20 +45,20 @@ export default function DashboardPage() {
     <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
       <main className="flex-grow px-6 py-16 md:py-24 relative overflow-hidden">
         {/* Glow effects */}
-        <div className="absolute top-20 left-10 w-[500px] h-[500px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div className="absolute top-20 left-10 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-40 right-10 w-[500px] h-[500px] bg-[#00F0FF]/5 rounded-full blur-[120px] pointer-events-none"></div>
 
         <div className="max-w-7xl mx-auto space-y-24 relative z-10">
           {/* Hero */}
           <div className="flex flex-col lg:flex-row justify-between items-center gap-16 lg:gap-12">
             <div className="flex flex-col items-center lg:items-start max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/5 text-[#D4AF37] text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8 mx-auto lg:mx-0">
-                <span className="size-1.5 rounded-full bg-[#D4AF37] animate-pulse shadow-[0_0_5px_#D4AF37]"></span>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/30 bg-primary/5 text-primary text-[10px] md:text-xs font-bold uppercase tracking-widest mb-6 md:mb-8 mx-auto lg:mx-0">
+                <span className="size-1.5 rounded-full bg-primary animate-pulse shadow-[0_0_5px_var(--brand-primary)]"></span>
                 The Future of Real Estate
               </div>
               <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-[5rem] font-light text-white leading-[1.1] md:leading-[1.05] mb-6 md:mb-8 heading-display tracking-tight text-center lg:text-left">
                 Institutional Grade <br className="hidden sm:block" />
-                <span className="font-medium bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] bg-clip-text text-transparent italic tracking-normal">Tokenization.</span>
+                <span className="font-medium bg-gradient-to-r from-primary via-primary-light to-primary bg-clip-text text-transparent italic tracking-normal">Tokenization.</span>
               </h1>
               <p className="text-base md:text-xl text-slate-400 font-light leading-relaxed max-w-2xl text-center lg:text-left mx-auto lg:mx-0">
                 On-chain verification and asset tokenization protocol for premium real estate. Bridge real-world property to Solana with cryptographically proven title deeds and fractional ownership.
@@ -66,7 +66,7 @@ export default function DashboardPage() {
               
               <div className="flex flex-wrap justify-center lg:justify-start gap-4 mt-10 md:mt-12">
                 {!user && (
-                    <div className="text-xs md:text-sm font-semibold text-[#D4AF37] bg-[#D4AF37]/10 border border-[#D4AF37]/20 px-5 md:px-6 py-3 md:py-4 rounded-xl backdrop-blur-sm flex items-center gap-3">
+                    <div className="text-xs md:text-sm font-semibold text-primary bg-primary/10 border border-primary/20 px-5 md:px-6 py-3 md:py-4 rounded-xl backdrop-blur-sm flex items-center gap-3">
                       <span className="material-symbols-outlined text-[18px] md:text-[20px]">account_balance_wallet</span>
                       Connect your wallet to get started.
                     </div>
@@ -74,7 +74,7 @@ export default function DashboardPage() {
                 
                 {user?.role === "owner" && (
                   <>
-                    <Link href="/verify" className="w-full sm:w-auto bg-gradient-to-tr from-[#D4AF37] to-[#F3E5AB] text-black px-8 py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-3 shadow-glow hover:scale-105 active:scale-95 duration-300">
+                    <Link href="/verify" className="w-full sm:w-auto bg-gradient-to-tr from-primary to-primary-light text-black px-8 py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-3 shadow-glow hover:scale-105 active:scale-95 duration-300">
                       <span className="material-symbols-outlined text-[20px]">add_circle</span>
                       Submit Asset
                     </Link>
@@ -104,7 +104,7 @@ export default function DashboardPage() {
             {/* Visual accent */}
             <div className="glass-panel rounded-3xl p-6 sm:p-8 flex flex-col gap-5 w-full max-w-sm lg:min-w-[320px] lg:w-auto mx-auto lg:mx-0 shadow-card relative transform lg:rotate-1 hover:rotate-0 transition-all duration-700 bg-gradient-to-br from-white/10 to-transparent border-t-white/20 border-l-white/20">
               <div className="absolute top-6 right-6 opacity-20 group-hover:opacity-40 transition-opacity">
-                <span className="material-symbols-outlined text-[64px] text-[#D4AF37]">architecture</span>
+                <span className="material-symbols-outlined text-[64px] text-primary">architecture</span>
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-1">Network Status</p>
@@ -156,7 +156,7 @@ export default function DashboardPage() {
               <div className="hidden lg:block absolute top-[48px] left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
               
               {[
-                { step: "01", icon: "upload_file", title: "Document Hash", desc: "Upload property deeds. We compute a zero-knowledge proof of the document to store on-chain.", color: "text-[#D4AF37]" },
+                { step: "01", icon: "upload_file", title: "Document Hash", desc: "Upload property deeds. We compute a zero-knowledge proof of the document to store on-chain.", color: "text-primary" },
                 { step: "02", icon: "policy", title: "Oracled Verification", desc: "Decentralized legal oracle cross-checks registry databases (RERA/Bhoomi) for authenticity.", color: "text-[#F59E0B]" },
                 { step: "03", icon: "generating_tokens", title: "Token Generation", desc: "Mint fractional SPL Token-2022 standards representing compliant ownership shares.", color: "text-[#00F0FF]" },
                 { step: "04", icon: "account_balance", title: "Yield Distribution", desc: "Automated smart contracts route rental yield proportionally to verified token holders.", color: "text-[#10B981]" },
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                 <h2 className="text-3xl md:text-4xl font-light text-white heading-display mb-2 md:mb-3">Recent On-Chain Activity</h2>
                 <p className="text-slate-400 font-light text-sm md:text-lg">The latest architectural assets brought on-chain.</p>
                 </div>
-                <Link href="/properties" className="text-xs md:text-sm text-[#D4AF37] hover:text-[#F3E5AB] font-bold uppercase tracking-widest transition-colors flex items-center gap-2 group self-start md:self-auto md:mb-2 mt-2 md:mt-0">
+                <Link href="/properties" className="text-xs md:text-sm text-primary hover:text-primary-light font-bold uppercase tracking-widest transition-colors flex items-center gap-2 group self-start md:self-auto md:mb-2 mt-2 md:mt-0">
                   View Registry <span className="material-symbols-outlined text-[16px] md:text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
                 </Link>
               </div>
@@ -194,10 +194,10 @@ export default function DashboardPage() {
                 {recentProps.map((p) => (
                   <div key={p.id} className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 px-6 sm:px-8 py-6 hover:bg-white/[0.04] transition-colors group cursor-pointer">
                     <div className="size-12 sm:size-14 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center shrink-0 group-hover:scale-105 group-hover:border-white/30 transition-all shadow-inner">
-                      <span className="material-symbols-outlined text-[22px] sm:text-[26px] text-[#D4AF37]">apartment</span>
+                      <span className="material-symbols-outlined text-[22px] sm:text-[26px] text-primary">apartment</span>
                     </div>
                     <div className="flex-grow min-w-0">
-                      <p className="font-medium text-white text-base sm:text-lg truncate mb-1 group-hover:text-[#D4AF37] transition-colors heading-display tracking-wide">{p.name}</p>
+                      <p className="font-medium text-white text-base sm:text-lg truncate mb-1 group-hover:text-primary transition-colors heading-display tracking-wide">{p.name}</p>
                       <p className="text-xs sm:text-sm text-slate-400 truncate font-light flex items-center gap-2">
                         <span className="material-symbols-outlined text-[14px] sm:text-[16px] text-slate-500">location_on</span>
                         {p.address}

@@ -75,7 +75,7 @@ The dashboard will be available at `http://localhost:3000`.
 
 - **Blockchain:** Solana (Anchor, SPL Token-2022)
 - **Backend:** Axum (Rust), SQLx (PostgreSQL), Serde, Tower-HTTP (CORS)
-- **Frontend:** Next.js, React, Tailwind CSS, Lucide Icons, Solana Wallet Adapter
+- **Frontend:** Next.js, React, Tailwind CSS, Google Material Symbols, Solana Wallet Adapter
 - **DevOps:** Docker Compose
 
 ---
