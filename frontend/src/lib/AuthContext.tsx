@@ -94,14 +94,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Dynamically update the app theme based on user role
     useEffect(() => {
         if (typeof document !== "undefined") {
-            const activeRole = dbUser ? dbUser.role : regRole;
-            if (activeRole === "investor" || activeRole === "retail") {
-                document.documentElement.setAttribute("data-theme", "investor");
+            if (isLoaded && !isSignedIn) {
+                document.documentElement.setAttribute("data-theme", "mixed");
             } else {
-                document.documentElement.removeAttribute("data-theme");
+                const activeRole = dbUser ? dbUser.role : regRole;
+                if (activeRole === "investor") {
+                    document.documentElement.setAttribute("data-theme", "investor");
+                } else {
+                    document.documentElement.removeAttribute("data-theme");
+                }
             }
         }
-    }, [dbUser?.role, regRole]);
+    }, [dbUser?.role, regRole, isLoaded, isSignedIn]);
 
     return (
         <AuthContext.Provider value={{ user: dbUser, loading, refreshUser: async () => { if (clerkUser) await fetchUser(clerkUser.id); }, setUser: setDbUser }}>

@@ -73,13 +73,18 @@ function TokenizeForm() {
         ASSOCIATED_TOKEN_PROGRAM_ID
       );
 
+      // Check if program ID is valid
+      if (!process.env.NEXT_PUBLIC_PROGRAM_ID) {
+        throw new Error("NEXT_PUBLIC_PROGRAM_ID not configured");
+      }
+
       // Derive Property PDA
       const [propertyPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("property"), Buffer.from(property.id)],
+        [Buffer.from("property"), Buffer.from(property.name)],
         programId
       );
 
-      console.log("🚀 Initializing on-chain mint for property:", property.id);
+      console.log("🚀 Initializing on-chain mint for property:", property.name);
 
       // 1. Send the Solana Transaction (Owner signs)
       const tx = await program.methods

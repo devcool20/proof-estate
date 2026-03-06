@@ -42,9 +42,16 @@ impl SolanaService {
     // PDA derivations
     // ──────────────────────────────────────────────────────
 
-    pub fn get_property_pda(&self, property_id: &str) -> (Pubkey, u8) {
+    pub fn get_property_pda(&self, property_name: &str) -> (Pubkey, u8) {
+        // Handle cases where property name might be too long or contain invalid chars
+        let name_bytes = if property_name.len() > 32 {
+            &property_name.as_bytes()[..32]
+        } else {
+            property_name.as_bytes()
+        };
+        
         Pubkey::find_program_address(
-            &[b"property", property_id.as_bytes()],
+            &[b"property", name_bytes],
             &self.program_id,
         )
     }
@@ -102,14 +109,14 @@ impl SolanaService {
     /// Initialize a property on-chain. Now includes metadata_uri.
     pub async fn initialize_on_chain(
         &self,
-        property_id: &str,
+        property_name: &str,
         metadata_hash: &str,
         metadata_uri: &str,
     ) -> anyhow::Result<String> {
-        let (property_pda, _) = self.get_property_pda(property_id);
+        let (property_pda, _) = self.get_property_pda(property_name);
 
         let mut data = Self::ix_discriminator("initialize_property").to_vec();
-        Self::encode_string(&mut data, property_id);
+        Self::encode_string(&mut data, property_name);
         Self::encode_string(&mut data, metadata_hash);
         Self::encode_string(&mut data, metadata_uri);
 
@@ -126,10 +133,10 @@ impl SolanaService {
     /// The backend wallet must be the registered verifier authority.
     pub async fn verify_on_chain(
         &self,
-        property_id: &str,
+        property_name: &str,
         approved: bool,
     ) -> anyhow::Result<String> {
-        let (property_pda, _) = self.get_property_pda(property_id);
+        let (property_pda, _) = self.get_property_pda(property_name);
         let (verifier_pda, _) = self.get_verifier_pda(&self.verifier_key.pubkey());
 
         let mut data = Self::ix_discriminator("verify_property").to_vec();
@@ -150,13 +157,13 @@ impl SolanaService {
     /// backend's ATA for demo / automated rent collection.
     pub async fn deposit_rent(
         &self,
-        property_id: &str,
+        property_name: &str,
         amount: u64,
         payer_usdc_account: &Pubkey,
         usdc_mint: &Pubkey,
         token_program: &Pubkey,
     ) -> anyhow::Result<String> {
-        let (property_pda, _) = self.get_property_pda(property_id);
+        let (property_pda, _) = self.get_property_pda(property_name);
         let (rent_vault_pda, _) = self.get_rent_vault_pda(&property_pda);
 
         let mut data = Self::ix_discriminator("deposit_rent").to_vec();

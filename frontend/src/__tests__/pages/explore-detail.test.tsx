@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import * as api from "@/lib/api";
 
 jest.mock("@/lib/api");
@@ -83,7 +83,11 @@ describe("PropertyInvestPage", () => {
   it("renders property details after loading", async () => {
     mockedApi.getProperty.mockResolvedValue(tokenizedProp);
     mockUseAuth.mockReturnValue({ user: { role: "investor", wallet: "w2" } });
-    renderPage();
+    
+    await act(async () => {
+      renderPage();
+    });
+    
     await waitFor(() => {
       expect(screen.getByText("Nehru Place Tower")).toBeInTheDocument();
     });
@@ -92,7 +96,11 @@ describe("PropertyInvestPage", () => {
   it("shows yield and price stats", async () => {
     mockedApi.getProperty.mockResolvedValue(tokenizedProp);
     mockUseAuth.mockReturnValue({ user: { role: "investor", wallet: "w2" } });
-    renderPage();
+    
+    await act(async () => {
+      renderPage();
+    });
+    
     await waitFor(() => {
       expect(screen.getByText("8.5%")).toBeInTheDocument();
     });
@@ -101,7 +109,11 @@ describe("PropertyInvestPage", () => {
   it("shows investment form for investor users", async () => {
     mockedApi.getProperty.mockResolvedValue(tokenizedProp);
     mockUseAuth.mockReturnValue({ user: { role: "investor", wallet: "w2" } });
-    renderPage();
+    
+    await act(async () => {
+      renderPage();
+    });
+    
     await waitFor(() => {
       expect(screen.getByText("Participate")).toBeInTheDocument();
     });

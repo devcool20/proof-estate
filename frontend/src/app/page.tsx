@@ -109,7 +109,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] mb-1">Network Status</p>
                 <div className="flex items-center gap-3">
-                  <div className="size-3 rounded-full bg-[#00F0FF] animate-pulse shadow-[0_0_12px_#00F0FF]" />
+                  <div className="size-3 rounded-full bg-primary animate-pulse shadow-[0_0_12px_var(--color-primary-rgb)]" />
                   <span className="text-xl font-medium text-white heading-display tracking-wide">Solana Devnet</span>
                 </div>
               </div>
@@ -123,13 +123,13 @@ export default function DashboardPage() {
                 <div className="h-px bg-white/5"></div>
                 <div className="flex justify-between items-center">
                   <span>Block Height</span>
-                  <span className="text-[#00F0FF]">342,918,221</span>
+                  <span className="text-primary">342,918,221</span>
                 </div>
               </div>
               
               <div className="pt-2 flex items-center justify-between text-xs text-slate-400">
                 <span className="uppercase tracking-widest text-[10px]">Anchor Standard</span>
-                <span className="text-[#00F0FF] bg-[#00F0FF]/10 border border-[#00F0FF]/20 px-3 py-1.5 rounded-lg font-mono">SPL-2022</span>
+                <span className="text-primary bg-primary/10 border border-primary/20 px-3 py-1.5 rounded-lg font-mono">SPL-2022</span>
               </div>
             </div>
           </div>
@@ -146,8 +146,15 @@ export default function DashboardPage() {
           <div className="relative">
             <div className="flex flex-col items-start mb-8 md:mb-12">
               <div>
-                <h2 className="text-4xl font-light text-white heading-display mb-3">Protocol Execution</h2>
-                <p className="text-slate-400 font-light text-lg">The transparent process from real estate to digital tokens.</p>
+                <h2 className="text-4xl font-light text-white heading-display mb-3">
+                  {user?.role === "investor" ? "Investor Earnings & Strategy" : 
+                   user?.role === "owner" ? "Asset Tokenization Protocol" : 
+                   "Platform Overview"}
+                </h2>
+                <p className="text-slate-400 font-light text-lg">
+                  {user?.role === "investor" ? "The transparent process to earn yield from premium tokenized real estate." :
+                   "The transparent process from real estate to digital tokens."}
+                </p>
               </div>
             </div>
             
@@ -155,12 +162,17 @@ export default function DashboardPage() {
               {/* Connecting line for desktop */}
               <div className="hidden lg:block absolute top-[48px] left-[10%] right-[10%] h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
               
-              {[
+              {(user?.role === "investor" ? [
+                { step: "01", icon: "explore", title: "Explore Markets", desc: "Browse institutional-grade properties verified on-chain via our open marketplace.", color: "text-primary" },
+                { step: "02", icon: "shopping_cart", title: "Acquire Tokens", desc: "Purchase SPL-2022 property tokens representing legal fractional ownership.", color: "text-[#F59E0B]" },
+                { step: "03", icon: "account_balance", title: "Earn Yield", desc: "Smart contracts automatically route rental yield proportionally to your wallet.", color: "text-[#10B981]" },
+                { step: "04", icon: "currency_exchange", title: "Trade & Exit", desc: "Instantly trade your fractional tokens on our decentralized liquidity pools.", color: "text-primary" }
+              ] : [
                 { step: "01", icon: "upload_file", title: "Document Hash", desc: "Upload property deeds. We compute a zero-knowledge proof of the document to store on-chain.", color: "text-primary" },
                 { step: "02", icon: "policy", title: "Oracled Verification", desc: "Decentralized legal oracle cross-checks registry databases (RERA/Bhoomi) for authenticity.", color: "text-[#F59E0B]" },
-                { step: "03", icon: "generating_tokens", title: "Token Generation", desc: "Mint fractional SPL Token-2022 standards representing compliant ownership shares.", color: "text-[#00F0FF]" },
-                { step: "04", icon: "account_balance", title: "Yield Distribution", desc: "Automated smart contracts route rental yield proportionally to verified token holders.", color: "text-[#10B981]" },
-              ].map(({ step, icon, title, desc, color }) => (
+                { step: "03", icon: "generating_tokens", title: "Token Generation", desc: "Mint fractional SPL Token-2022 standards representing compliant ownership shares.", color: "text-primary" },
+                { step: "04", icon: "account_balance", title: "Yield Distribution", desc: "Automated smart contracts route rental yield proportionally to verified token holders.", color: "text-[#10B981]" }
+              ]).map(({ step, icon, title, desc, color }) => (
                 <div key={step} className="glass-panel rounded-3xl p-8 space-y-6 hover:-translate-y-2 transition-all duration-300 relative group z-10 bg-gradient-to-b from-white/5 to-transparent">
                   <div className="flex justify-between items-start">
                     <div className="size-16 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center shadow-inner group-hover:border-white/20 transition-colors">

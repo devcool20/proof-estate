@@ -49,13 +49,19 @@ export default function PropertyInvestPage({ params }: { params: Promise<{ id: s
 
         // Estimate claimable rent (simplified for UI)
         // In real app, we'd fetch the rent_vault account data
+        const programIdStr = process.env.NEXT_PUBLIC_PROGRAM_ID;
+        if (!programIdStr) {
+          console.warn("NEXT_PUBLIC_PROGRAM_ID not set, skipping PDA derivation");
+          return;
+        }
+        
         const [propertyPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("property"), Buffer.from(property!.id)],
-          new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID!)
+          [Buffer.from("property"), Buffer.from(property!.name)],
+          new PublicKey(programIdStr)
         );
         const [vaultPDA] = PublicKey.findProgramAddressSync(
             [Buffer.from("rent_vault"), propertyPDA.toBuffer()],
-            new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID!)
+            new PublicKey(programIdStr)
         );
         const vaultAccount = await connection.getAccountInfo(vaultPDA);
         if (vaultAccount) {

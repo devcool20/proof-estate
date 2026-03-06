@@ -978,5 +978,367 @@ describe("proof_estate", () => {
             // Remaining vault balance should be ~375 USDC (50% of 750)
             assert.ok(claimed > BigInt(0), `Owner should have claimed some rent, got ${claimed}`);
         });
+
+        it("rejects rent claim when computed amount rounds to zero (NothingToClaim)", async () => {
+            const tinyPropertyId = "prop-round-down";
+            const [tinyPropertyPDA] = derivePropertyPDA(program.programId, tinyPropertyId);
+            const tinyTokenKP = Keypair.generate();
+            const tinyOwnerATA = await getAssociatedTokenAddress(tinyTokenKP.publicKey, owner.publicKey);
+
+            // Initialize, verify, and tokenize a property with very small supply
+            await program.methods
+                .initializeProperty(tinyPropertyId, "round-hash", "ipfs://tiny")
+                .accounts({
+                    propertyAccount: tinyPropertyPDA,
+                    owner: owner.publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .signers([owner])
+                .rpc();
+
+            await program.methods
+                .verifyProperty(true)
+                .accounts({
+                    propertyAccount: tinyPropertyPDA,
+                    verifier: verifierPDA,
+                    verifyAuthority: verifierAuthority.publicKey,
+                })
+                .signers([verifierAuthority])
+                .rpc();
+
+            // Tokenize with very large supply to make individual shares tiny
+            await program.methods
+                .tokenizeProperty(new anchor.BN(1_000_000))
+                .accounts({
+                    propertyAccount: tinyPropertyPDA,
+                    owner: owner.publicKey,
+                    tokenMint: tinyTokenKP.publicKey,
+                    ownerTokenAccount: tinyOwnerATA,
+                    systemProgram: SystemProgram.programId,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([owner, tinyTokenKP])
+                .rpc();
+
+            // Give investor just 1 token out of 1,000,000
+            const tinyInvestorATA = await createAssociatedTokenAccount(
+                provider.connection,
+                owner,
+                tinyTokenKP.publicKey,
+                investor.publicKey
+            );
+
+            await anchor.web3.sendAndConfirmTransaction(
+                provider.connection,
+                new anchor.web3.Transaction().add(
+                    createTransferInstruction(
+                        tinyOwnerATA,
+                        tinyInvestorATA,
+                        owner.publicKey,
+                        BigInt(1)
+                    )
+                ),
+                [owner]
+            );
+
+            const [tinyRentVaultPDA] = deriveRentVaultPDA(program.programId, tinyPropertyPDA);
+
+            // Deposit tiny amount that will round down to zero for 1/1M share
+            await program.methods
+                .depositRent(new anchor.BN(1))
+                .accounts({
+                    propertyAccount: tinyPropertyPDA,
+                    payer: owner.publicKey,
+                    payerUsdcAccount: ownerUsdcAccount,
+                    rentVault: tinyRentVaultPDA,
+                    usdcMint: usdcMint,
+                    systemProgram: SystemProgram.programId,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([owner])
+                .rpc();
+
+            try {
+                await program.methods
+                    .claimRent()
+                    .accounts({
+                        propertyAccount: tinyPropertyPDA,
+                        holder: investor.publicKey,
+                        holderTokenAccount: tinyInvestorATA,
+                        propertyTokenMint: tinyTokenKP.publicKey,
+                        holderUsdcAccount: investorUsdcAccount,
+                        rentVault: tinyRentVaultPDA,
+                        usdcMint: usdcMint,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    })
+                    .signers([investor])
+                    .rpc();
+                assert.fail("Should fail when claimable rounds down to zero");
+            } catch (err: any) {
+                assert.ok(
+                    err.toString().includes("NothingToClaim") || err.toString().includes("0x177a"),
+                    "Expected NothingToClaim error for rounding-to-zero"
+                );
+            }
+        });
+
+        it("prevents second claim when rent vault is fully drained (VaultEmpty)", async () => {
+            const exhaustedId = "prop-exhaust";
+            const [exhaustedPDA] = derivePropertyPDA(program.programId, exhaustedId);
+            const mintKP = Keypair.generate();
+            const ownerATA = await getAssociatedTokenAddress(mintKP.publicKey, owner.publicKey);
+
+            // Initialize, verify, and tokenize with supply of 1 (owner gets all)
+            await program.methods
+                .initializeProperty(exhaustedId, "exhaust-hash", "ipfs://exhaust")
+                .accounts({
+                    propertyAccount: exhaustedPDA,
+                    owner: owner.publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .signers([owner])
+                .rpc();
+
+            await program.methods
+                .verifyProperty(true)
+                .accounts({
+                    propertyAccount: exhaustedPDA,
+                    verifier: verifierPDA,
+                    verifyAuthority: verifierAuthority.publicKey,
+                })
+                .signers([verifierAuthority])
+                .rpc();
+
+            await program.methods
+                .tokenizeProperty(new anchor.BN(1))
+                .accounts({
+                    propertyAccount: exhaustedPDA,
+                    owner: owner.publicKey,
+                    tokenMint: mintKP.publicKey,
+                    ownerTokenAccount: ownerATA,
+                    systemProgram: SystemProgram.programId,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([owner, mintKP])
+                .rpc();
+
+            const [exhaustedVault] = deriveRentVaultPDA(program.programId, exhaustedPDA);
+
+            // Deposit small amount
+            await program.methods
+                .depositRent(new anchor.BN(100))
+                .accounts({
+                    propertyAccount: exhaustedPDA,
+                    payer: owner.publicKey,
+                    payerUsdcAccount: ownerUsdcAccount,
+                    rentVault: exhaustedVault,
+                    usdcMint: usdcMint,
+                    systemProgram: SystemProgram.programId,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([owner])
+                .rpc();
+
+            // First claim should succeed (owner gets 100% = 100 USDC)
+            await program.methods
+                .claimRent()
+                .accounts({
+                    propertyAccount: exhaustedPDA,
+                    holder: owner.publicKey,
+                    holderTokenAccount: ownerATA,
+                    propertyTokenMint: mintKP.publicKey,
+                    holderUsdcAccount: ownerUsdcAccount,
+                    rentVault: exhaustedVault,
+                    usdcMint: usdcMint,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                })
+                .signers([owner])
+                .rpc();
+
+            // Verify vault is now empty
+            const vaultAfterClaim = await getAccount(provider.connection, exhaustedVault);
+            assert.equal(vaultAfterClaim.amount.toString(), "0", "Vault should be empty after full claim");
+
+            // Second claim should fail
+            try {
+                await program.methods
+                    .claimRent()
+                    .accounts({
+                        propertyAccount: exhaustedPDA,
+                        holder: owner.publicKey,
+                        holderTokenAccount: ownerATA,
+                        propertyTokenMint: mintKP.publicKey,
+                        holderUsdcAccount: ownerUsdcAccount,
+                        rentVault: exhaustedVault,
+                        usdcMint: usdcMint,
+                        tokenProgram: TOKEN_PROGRAM_ID,
+                        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    })
+                    .signers([owner])
+                    .rpc();
+                assert.fail("Second claim should fail when vault has zero balance");
+            } catch (err: any) {
+                assert.ok(
+                    err.toString().includes("VaultEmpty") || err.toString().includes("0x177b"),
+                    "Expected VaultEmpty error for exhausted vault"
+                );
+            }
+        });
+
+        it("validates rent claim precision with multiple small holders", async () => {
+            const precisionId = "prop-precision";
+            const [precisionPDA] = derivePropertyPDA(program.programId, precisionId);
+            const precisionMintKP = Keypair.generate();
+            const ownerPrecisionATA = await getAssociatedTokenAddress(precisionMintKP.publicKey, owner.publicKey);
+
+            // Initialize, verify, and tokenize
+            await program.methods
+                .initializeProperty(precisionId, "precision-hash", "ipfs://precision")
+                .accounts({
+                    propertyAccount: precisionPDA,
+                    owner: owner.publicKey,
+                    systemProgram: SystemProgram.programId,
+                })
+                .signers([owner])
+                .rpc();
+
+            await program.methods
+                .verifyProperty(true)
+                .accounts({
+                    propertyAccount: precisionPDA,
+                    verifier: verifierPDA,
+                    verifyAuthority: verifierAuthority.publicKey,
+                })
+                .signers([verifierAuthority])
+                .rpc();
+
+            await program.methods
+                .tokenizeProperty(new anchor.BN(1000))
+                .accounts({
+                    propertyAccount: precisionPDA,
+                    owner: owner.publicKey,
+                    tokenMint: precisionMintKP.publicKey,
+                    ownerTokenAccount: ownerPrecisionATA,
+                    systemProgram: SystemProgram.programId,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([owner, precisionMintKP])
+                .rpc();
+
+            // Create multiple small holders
+            const holder1ATA = await createAssociatedTokenAccount(
+                provider.connection,
+                owner,
+                precisionMintKP.publicKey,
+                investor.publicKey
+            );
+            const holder2ATA = await createAssociatedTokenAccount(
+                provider.connection,
+                owner,
+                precisionMintKP.publicKey,
+                unauthorizedUser.publicKey
+            );
+
+            // Transfer tokens: owner keeps 700, investor gets 200, unauthorized gets 100
+            await anchor.web3.sendAndConfirmTransaction(
+                provider.connection,
+                new anchor.web3.Transaction().add(
+                    createTransferInstruction(
+                        ownerPrecisionATA,
+                        holder1ATA,
+                        owner.publicKey,
+                        BigInt(200)
+                    )
+                ),
+                [owner]
+            );
+
+            await anchor.web3.sendAndConfirmTransaction(
+                provider.connection,
+                new anchor.web3.Transaction().add(
+                    createTransferInstruction(
+                        ownerPrecisionATA,
+                        holder2ATA,
+                        owner.publicKey,
+                        BigInt(100)
+                    )
+                ),
+                [owner]
+            );
+
+            const [precisionVault] = deriveRentVaultPDA(program.programId, precisionPDA);
+
+            // Deposit 1000 USDC
+            await program.methods
+                .depositRent(new anchor.BN(1_000_000_000))
+                .accounts({
+                    propertyAccount: precisionPDA,
+                    payer: owner.publicKey,
+                    payerUsdcAccount: ownerUsdcAccount,
+                    rentVault: precisionVault,
+                    usdcMint: usdcMint,
+                    systemProgram: SystemProgram.programId,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    rent: SYSVAR_RENT_PUBKEY,
+                })
+                .signers([owner])
+                .rpc();
+
+            // Create USDC accounts for holders
+            const holder2UsdcATA = await createAssociatedTokenAccount(
+                provider.connection,
+                unauthorizedUser,
+                usdcMint,
+                unauthorizedUser.publicKey
+            );
+
+            // Each holder claims their share
+            const vaultBefore = await getAccount(provider.connection, precisionVault);
+            const totalVault = BigInt(vaultBefore.amount.toString());
+
+            // Holder2 (100/1000 = 10%) should get 100 USDC
+            await program.methods
+                .claimRent()
+                .accounts({
+                    propertyAccount: precisionPDA,
+                    holder: unauthorizedUser.publicKey,
+                    holderTokenAccount: holder2ATA,
+                    propertyTokenMint: precisionMintKP.publicKey,
+                    holderUsdcAccount: holder2UsdcATA,
+                    rentVault: precisionVault,
+                    usdcMint: usdcMint,
+                    tokenProgram: TOKEN_PROGRAM_ID,
+                    associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+                })
+                .signers([unauthorizedUser])
+                .rpc();
+
+            const holder2Balance = await getAccount(provider.connection, holder2UsdcATA);
+            const expectedHolder2 = BigInt(100_000_000); // 100 USDC with 6 decimals
+            assert.ok(
+                holder2Balance.amount >= expectedHolder2 - BigInt(1) && 
+                holder2Balance.amount <= expectedHolder2 + BigInt(1),
+                `Holder2 should get ~100 USDC, got ${holder2Balance.amount}`
+            );
+
+            // Verify vault balance decreased correctly
+            const vaultAfter = await getAccount(provider.connection, precisionVault);
+            const remaining = BigInt(vaultAfter.amount.toString());
+            const claimed = totalVault - remaining;
+            assert.ok(
+                claimed >= expectedHolder2 - BigInt(1) && claimed <= expectedHolder2 + BigInt(1),
+                `Vault should decrease by ~100 USDC, decreased by ${claimed}`
+            );
+        });
     });
 });

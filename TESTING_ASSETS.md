@@ -8,6 +8,14 @@ To help you simulate the property verification flow, I have generated a **Sample
    - `frontend/public/sample_land_deed.png`
 3. You can also upload any of the PDFs in the `frontend/docs/` folder.
 
+##Stop backend
+
+Stop-Process -Id (Get-NetTCPConnection -LocalPort 3001 | Select-Object -ExpandProperty OwningProcess) -Force
+
+##Start backend
+
+cargo run
+
 ---
 ### 💡 How the Simulation Works
 Regardless of the file you upload, the ProofEstate backend will:

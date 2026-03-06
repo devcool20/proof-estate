@@ -1,0 +1,26 @@
+{
+  "name": "proofestate-integration-tests",
+  "version": "1.0.0",
+  "description": "Cross-layer integration tests for ProofEstate blockchain flow",
+  "main": "blockchain-flow.test.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 60000,
+    "verbose": true,
+    "collectCoverageFrom": [
+      "**/*.{js,ts}",
+      "!**/node_modules/**"
+    ]
+  }
+}

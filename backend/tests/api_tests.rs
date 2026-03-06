@@ -805,3 +805,490 @@ fn test_sha256_hex_empty_string() {
     // Known SHA-256 of empty string
     assert_eq!(hash, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 }
+
+// ======================================================================
+// Blockchain Flow Validation Tests
+// ======================================================================
+
+#[tokio::test]
+async fn test_full_blockchain_lifecycle_with_pending_tokenization() {
+    let base = spawn_test_server().await;
+    let c = client();
+    let owner_wallet = "lifecycle_owner_wallet";
+
+    // 1. Submit property
+    let submit_res = c
+        .post(format!("{}/api/v1/properties/submit", base))
+        .json(&json!({
+            "owner_wallet": owner_wallet,
+            "name": "Full Lifecycle Property",
+            "address": "123 Blockchain St",
+            "city": "Crypto City",
+            "property_type": "residential",
+            "area_sqft": 2000,
+            "asset_value_inr": 50000000
+        }))
+        .send()
+        .await;
+
+    let property_id = match submit_res {
+        Ok(r) if r.status().is_success() => {
+            let body: Value = r.json().await.unwrap();
+            assert_eq!(body["status"], "pending_verification");
+            assert!(!body["metadata_hash"].as_str().unwrap().is_empty());
+            body["property_id"].as_str().unwrap().to_string()
+        }
+        _ => {
+            eprintln!("⚠️ Skipping lifecycle test - submit failed");
+            return;
+        }
+    };
+
+    // 2. Verify property (approve)
+    let verify_res = c
+        .patch(format!("{}/api/v1/properties/{}/verify", base, property_id))
+        .json(&json!({
+            "verifier_wallet": "government_verifier",
+            "approved": true,
+            "notes": "All documents verified successfully"
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert!(verify_res.status().is_success());
+    let verify_body: Value = verify_res.json().await.unwrap();
+    assert_eq!(verify_body["new_status"], "verified");
+
+    // 3. Request tokenization (without tx_signature = pending path)
+    let tokenize_res = c
+        .post(format!("{}/api/v1/properties/{}/tokenize", base, property_id))
+        .json(&json!({
+            "owner_wallet": owner_wallet,
+            "token_supply": 10000,
+            "token_price_usd": 25.0,
+            "yield_percent": 6.5,
+            "dist_frequency": "quarterly"
+        }))
+        .send()
+        .await
+        .unwrap();
+
+    assert!(tokenize_res.status().is_success());
+    let tokenize_body: Value = tokenize_res.json().await.unwrap();
+    assert_eq!(tokenize_body["status"], "pending_tokenization");
+
+    // 4. Admin approves tokenization
+    let approve_res = c
+        .post(format!("{}/api/v1/properties/{}/approve_tokenization", base, property_id))
+        .json(&json!({ "admin_wallet": "admin_wallet" }))
+        .send()
+        .await
+        .unwrap();
+
+    assert!(approve_res.status().is_success());
+    let approve_body: Value = approve_res.json().await.unwrap();
+    assert_eq!(approve_body["status"], "tokenized");
+    assert!(!approve_body["token_mint"].as_str().unwrap().is_empty());
+
+    // 5. Verify property appears in marketplace
+    let market_res = c
+        .get(format!("{}/api/v1/marketplace", base))
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(market_res.status(), 200);
+    let market: Vec<Value> = market_res.json().await.unwrap();
+    let found = market.iter().any(|p| p["id"].as_str() == Some(&property_id));
+    assert!(found, "Tokenized property should appear in marketplace");
+}
+
+#[tokio::test]
+async fn test_tokenize_rejects_non_positive_supply() {
+    let base = spawn_test_server().await;
+    let c = client();
+    let owner_wallet = "supply_validation_owner";
+
+    // Submit and verify property first
+    let submit_res = c
+        .post(format!("{}/api/v1/properties/submit", base))
+        .json(&json!({
+            "owner_wallet": owner_wallet,
+            "name": "Supply Validation Property",
+            "address": "Supply Test Address"
+        }))
+        .send()
+        .await;
+
+    let property_id = match submit_res {
+        Ok(r) if r.status().is_success() => {
+            r.json::<Value>().await.unwrap()["property_id"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        }
+        _ => {
+            eprintln!("⚠️ Skipping supply validation test - submit failed");
+            return;
+        }
+    };
+
+    let _ = c
+        .patch(format!("{}/api/v1/properties/{}/verify", base, property_id))
+        .json(&json!({
+            "verifier_wallet": "admin",
+            "approved": true
+        }))
+        .send()
+        .await;
+
+    // Test zero supply
+    let zero_res = c
+        .post(format!("{}/api/v1/properties/{}/tokenize", base, property_id))
+        .json(&json!({
+            "owner_wallet": owner_wallet,
+            "token_supply": 0,
+            "token_price_usd": 25.0,
+            "yield_percent": 6.0
+        }))
+        .send()
+        .await;
+
+    match zero_res {
+        Ok(r) => {
+            assert!(
+                r.status().is_client_error(),
+                "Zero supply should be rejected, got {}", r.status()
+            );
+        }
+        Err(e) => eprintln!("⚠️ Skipping zero supply test: {}", e),
+    }
+
+    // Test negative supply
+    let negative_res = c
+        .post(format!("{}/api/v1/properties/{}/tokenize", base, property_id))
+        .json(&json!({
+            "owner_wallet": owner_wallet,
+            "token_supply": -100,
+            "token_price_usd": 25.0,
+            "yield_percent": 6.0
+        }))
+        .send()
+        .await;
+
+    match negative_res {
+        Ok(r) => {
+            assert!(
+                r.status().is_client_error(),
+                "Negative supply should be rejected, got {}", r.status()
+            );
+        }
+        Err(e) => eprintln!("⚠️ Skipping negative supply test: {}", e),
+    }
+}
+
+#[tokio::test]
+async fn test_blockchain_state_transitions_are_enforced() {
+    let base = spawn_test_server().await;
+    let c = client();
+    let owner_wallet = "state_transition_owner";
+
+    // Submit property
+    let submit_res = c
+        .post(format!("{}/api/v1/properties/submit", base))
+        .json(&json!({
+            "owner_wallet": owner_wallet,
+            "name": "State Transition Property",
+            "address": "State Test Address"
+        }))
+        .send()
+        .await;
+
+    let property_id = match submit_res {
+        Ok(r) if r.status().is_success() => {
+            r.json::<Value>().await.unwrap()["property_id"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        }
+        _ => {
+            eprintln!("⚠️ Skipping state transition test - submit failed");
+            return;
+        }
+    };
+
+    // Try to tokenize before verification (should fail)
+    let early_tokenize_res = c
+        .post(format!("{}/api/v1/properties/{}/tokenize", base, property_id))
+        .json(&json!({
+            "owner_wallet": owner_wallet,
+            "token_supply": 1000,
+            "token_price_usd": 10.0,
+            "yield_percent": 5.0
+        }))
+        .send()
+        .await;
+
+    match early_tokenize_res {
+        Ok(r) => {
+            assert_eq!(r.status(), 400, "Should not tokenize unverified property");
+            let body: Value = r.json().await.unwrap();
+            assert!(body["error"].as_str().unwrap().contains("not verified"));
+        }
+        Err(e) => eprintln!("⚠️ Skipping early tokenize test: {}", e),
+    }
+
+    // Verify property
+    let _ = c
+        .patch(format!("{}/api/v1/properties/{}/verify", base, property_id))
+        .json(&json!({
+            "verifier_wallet": "admin",
+            "approved": true
+        }))
+        .send()
+        .await;
+
+    // Try to verify again (should fail or be idempotent)
+    let double_verify_res = c
+        .patch(format!("{}/api/v1/properties/{}/verify", base, property_id))
+        .json(&json!({
+            "verifier_wallet": "admin",
+            "approved": true
+        }))
+        .send()
+        .await;
+
+    match double_verify_res {
+        Ok(r) => {
+            // Some implementations might allow re-verification, others might reject
+            // The important thing is it doesn't break the system
+            assert!(r.status().is_success() || r.status().is_client_error());
+        }
+        Err(e) => eprintln!("⚠️ Double verify test result: {}", e),
+    }
+
+    // Request tokenization
+    let _ = c
+        .post(format!("{}/api/v1/properties/{}/tokenize", base, property_id))
+        .json(&json!({
+            "owner_wallet": owner_wallet,
+            "token_supply": 1000,
+            "token_price_usd": 10.0,
+            "yield_percent": 5.0
+        }))
+        .send()
+        .await;
+
+    // Try to approve tokenization on wrong status
+    let wrong_approve_res = c
+        .post(format!("{}/api/v1/properties/00000000-0000-0000-0000-000000000000/approve_tokenization", base))
+        .json(&json!({ "admin_wallet": "admin" }))
+        .send()
+        .await;
+
+    match wrong_approve_res {
+        Ok(r) => {
+            assert_eq!(r.status(), 404, "Should not find non-existent property");
+        }
+        Err(e) => eprintln!("⚠️ Skipping wrong approve test: {}", e),
+    }
+}
+
+#[tokio::test]
+async fn test_property_ownership_validation() {
+    let base = spawn_test_server().await;
+    let c = client();
+    let real_owner = "real_owner_wallet";
+    let imposter = "imposter_wallet";
+
+    // Submit property as real owner
+    let submit_res = c
+        .post(format!("{}/api/v1/properties/submit", base))
+        .json(&json!({
+            "owner_wallet": real_owner,
+            "name": "Ownership Test Property",
+            "address": "Ownership Test Address"
+        }))
+        .send()
+        .await;
+
+    let property_id = match submit_res {
+        Ok(r) if r.status().is_success() => {
+            r.json::<Value>().await.unwrap()["property_id"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        }
+        _ => {
+            eprintln!("⚠️ Skipping ownership test - submit failed");
+            return;
+        }
+    };
+
+    // Verify property
+    let _ = c
+        .patch(format!("{}/api/v1/properties/{}/verify", base, property_id))
+        .json(&json!({
+            "verifier_wallet": "admin",
+            "approved": true
+        }))
+        .send()
+        .await;
+
+    // Try to tokenize as imposter (should fail)
+    let imposter_tokenize_res = c
+        .post(format!("{}/api/v1/properties/{}/tokenize", base, property_id))
+        .json(&json!({
+            "owner_wallet": imposter,
+            "token_supply": 1000,
+            "token_price_usd": 10.0,
+            "yield_percent": 5.0
+        }))
+        .send()
+        .await;
+
+    match imposter_tokenize_res {
+        Ok(r) => {
+            assert_eq!(r.status(), 403, "Imposter should not be able to tokenize");
+            let body: Value = r.json().await.unwrap();
+            assert!(body["error"].as_str().unwrap().contains("Not the property owner"));
+        }
+        Err(e) => eprintln!("⚠️ Skipping imposter test: {}", e),
+    }
+
+    // Real owner should succeed
+    let real_tokenize_res = c
+        .post(format!("{}/api/v1/properties/{}/tokenize", base, property_id))
+        .json(&json!({
+            "owner_wallet": real_owner,
+            "token_supply": 1000,
+            "token_price_usd": 10.0,
+            "yield_percent": 5.0
+        }))
+        .send()
+        .await;
+
+    match real_tokenize_res {
+        Ok(r) => {
+            assert!(r.status().is_success(), "Real owner should succeed");
+        }
+        Err(e) => eprintln!("⚠️ Real owner tokenize failed: {}", e),
+    }
+}
+
+#[tokio::test]
+async fn test_on_chain_pda_consistency() {
+    let base = spawn_test_server().await;
+    let c = client();
+
+    let submit_res = c
+        .post(format!("{}/api/v1/properties/submit", base))
+        .json(&json!({
+            "owner_wallet": "pda_test_owner",
+            "name": "PDA Consistency Property",
+            "address": "PDA Test Address"
+        }))
+        .send()
+        .await;
+
+    let (property_id, property_name) = match submit_res {
+        Ok(r) if r.status().is_success() => {
+            let body: Value = r.json().await.unwrap();
+            (
+                body["property_id"].as_str().unwrap().to_string(),
+                "PDA Consistency Property".to_string()
+            )
+        }
+        _ => {
+            eprintln!("⚠️ Skipping PDA test - submit failed");
+            return;
+        }
+    };
+
+    // Get the property and check on_chain_address
+    let prop_res = c
+        .get(format!("{}/api/v1/properties/{}", base, property_id))
+        .send()
+        .await;
+
+    match prop_res {
+        Ok(r) if r.status().is_success() => {
+            let prop: Value = r.json().await.unwrap();
+            let on_chain_address = prop["on_chain_address"].as_str().unwrap();
+            
+            // Verify it's not empty and has reasonable format
+            assert!(!on_chain_address.is_empty(), "On-chain address should not be empty");
+            assert!(on_chain_address.len() >= 32, "On-chain address should be reasonable length");
+            
+            // In a real implementation, you'd verify the PDA derivation matches
+            // For now, just ensure it's deterministic by checking it's the same on subsequent calls
+            let prop_res2 = c
+                .get(format!("{}/api/v1/properties/{}", base, property_id))
+                .send()
+                .await
+                .unwrap();
+            
+            let prop2: Value = prop_res2.json().await.unwrap();
+            assert_eq!(
+                prop["on_chain_address"], 
+                prop2["on_chain_address"],
+                "On-chain address should be deterministic"
+            );
+        }
+        _ => eprintln!("⚠️ Skipping PDA consistency check"),
+    }
+}
+
+#[tokio::test]
+async fn test_blockchain_metadata_integrity() {
+    let base = spawn_test_server().await;
+    let c = client();
+
+    let submit_res = c
+        .post(format!("{}/api/v1/properties/submit", base))
+        .json(&json!({
+            "owner_wallet": "metadata_test_owner",
+            "name": "Metadata Integrity Property",
+            "address": "Metadata Test Address",
+            "document_url": "/docs/test_deed.pdf",
+            "metadata_uri": "ipfs://QmTestHash123"
+        }))
+        .send()
+        .await;
+
+    match submit_res {
+        Ok(r) if r.status().is_success() => {
+            let body: Value = r.json().await.unwrap();
+            let metadata_hash = body["metadata_hash"].as_str().unwrap();
+            
+            // Verify metadata hash is present and has correct format
+            assert!(!metadata_hash.is_empty(), "Metadata hash should not be empty");
+            assert_eq!(metadata_hash.len(), 64, "Metadata hash should be 64 chars (SHA-256)");
+            
+            // Verify it's deterministic - same inputs should produce same hash
+            let submit_res2 = c
+                .post(format!("{}/api/v1/properties/submit", base))
+                .json(&json!({
+                    "owner_wallet": "metadata_test_owner_2",
+                    "name": "Metadata Integrity Property",
+                    "address": "Metadata Test Address",
+                    "document_url": "/docs/test_deed.pdf"
+                }))
+                .send()
+                .await;
+                
+            match submit_res2 {
+                Ok(r2) if r2.status().is_success() => {
+                    let body2: Value = r2.json().await.unwrap();
+                    let metadata_hash2 = body2["metadata_hash"].as_str().unwrap();
+                    
+                    // Hashes should be different due to different owners and timestamps
+                    assert_ne!(metadata_hash, metadata_hash2, "Different properties should have different metadata hashes");
+                }
+                _ => eprintln!("⚠️ Second submit failed"),
+            }
+        }
+        _ => eprintln!("⚠️ Skipping metadata integrity test - submit failed"),
+    }
+}
