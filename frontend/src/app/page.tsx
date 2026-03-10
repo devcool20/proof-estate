@@ -189,8 +189,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Recent Properties */}
-          {recentProps.length > 0 && (
+          {/* Recent Properties (owner/admin/guest only) */}
+          {user?.role !== "investor" && recentProps.length > 0 && (
             <div className="pb-10">
               <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-8 border-b border-white/10 pb-6">
                 <div>

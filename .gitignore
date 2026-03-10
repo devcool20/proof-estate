@@ -36,3 +36,6 @@ desktop.ini
 # Project specific
 build_log.txt
 build_log_2.txt
+
+# Solana local ledger (never commit keys)
+backend/test-ledger/

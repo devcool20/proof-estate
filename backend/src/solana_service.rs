@@ -42,18 +42,14 @@ impl SolanaService {
     // PDA derivations
     // ──────────────────────────────────────────────────────
 
-    pub fn get_property_pda(&self, property_name: &str) -> (Pubkey, u8) {
-        // Handle cases where property name might be too long or contain invalid chars
-        let name_bytes = if property_name.len() > 32 {
-            &property_name.as_bytes()[..32]
-        } else {
-            property_name.as_bytes()
-        };
-        
-        Pubkey::find_program_address(
-            &[b"property", name_bytes],
+    pub fn get_property_pda(&self, property_key: &str) -> anyhow::Result<(Pubkey, u8)> {
+        if property_key.as_bytes().len() > 32 {
+            anyhow::bail!("property_key must be 32 bytes or less for PDA seeds");
+        }
+        Ok(Pubkey::find_program_address(
+            &[b"property", property_key.as_bytes()],
             &self.program_id,
-        )
+        ))
     }
 
     pub fn get_verifier_pda(&self, authority: &Pubkey) -> (Pubkey, u8) {
@@ -109,14 +105,14 @@ impl SolanaService {
     /// Initialize a property on-chain. Now includes metadata_uri.
     pub async fn initialize_on_chain(
         &self,
-        property_name: &str,
+        property_key: &str,
         metadata_hash: &str,
         metadata_uri: &str,
     ) -> anyhow::Result<String> {
-        let (property_pda, _) = self.get_property_pda(property_name);
+        let (property_pda, _) = self.get_property_pda(property_key)?;
 
         let mut data = Self::ix_discriminator("initialize_property").to_vec();
-        Self::encode_string(&mut data, property_name);
+        Self::encode_string(&mut data, property_key);
         Self::encode_string(&mut data, metadata_hash);
         Self::encode_string(&mut data, metadata_uri);
 
@@ -131,12 +127,11 @@ impl SolanaService {
 
     /// Verify (approve or reject) a property on-chain.
     /// The backend wallet must be the registered verifier authority.
-    pub async fn verify_on_chain(
+    pub async fn verify_on_chain_by_address(
         &self,
-        property_name: &str,
+        property_address: &Pubkey,
         approved: bool,
     ) -> anyhow::Result<String> {
-        let (property_pda, _) = self.get_property_pda(property_name);
         let (verifier_pda, _) = self.get_verifier_pda(&self.verifier_key.pubkey());
 
         let mut data = Self::ix_discriminator("verify_property").to_vec();
@@ -144,7 +139,7 @@ impl SolanaService {
         data.push(u8::from(approved));
 
         let accounts = vec![
-            AccountMeta::new(property_pda, false),
+            AccountMeta::new(*property_address, false),
             AccountMeta::new_readonly(verifier_pda, false),
             AccountMeta::new_readonly(self.verifier_key.pubkey(), true),
         ];
@@ -157,13 +152,13 @@ impl SolanaService {
     /// backend's ATA for demo / automated rent collection.
     pub async fn deposit_rent(
         &self,
-        property_name: &str,
+        property_key: &str,
         amount: u64,
         payer_usdc_account: &Pubkey,
         usdc_mint: &Pubkey,
         token_program: &Pubkey,
     ) -> anyhow::Result<String> {
-        let (property_pda, _) = self.get_property_pda(property_name);
+        let (property_pda, _) = self.get_property_pda(property_key)?;
         let (rent_vault_pda, _) = self.get_rent_vault_pda(&property_pda);
 
         let mut data = Self::ix_discriminator("deposit_rent").to_vec();

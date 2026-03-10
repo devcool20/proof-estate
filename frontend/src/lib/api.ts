@@ -1,7 +1,11 @@
 // ProofEstate API client
 // Talks to the Rust/Axum backend at localhost:8080
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const GET_CACHE_TTL_MS = 30_000;
+
+const responseCache = new Map<string, { expiry: number; data: unknown }>();
+const inflightCache = new Map<string, Promise<unknown>>();
 
 export type PropertyStatus = "draft" | "pending_verification" | "verified" | "pending_tokenization" | "tokenized" | "rejected";
 export type PropertyType = "residential" | "commercial" | "land" | "warehouse";
@@ -37,9 +41,22 @@ export interface Property {
     owner_wallet: string;
     submitted_at?: string;
     verified_at?: string;
+    tokenized_at?: string;
     created_at: string;
     document_url?: string;
     image_url?: string;
+    description?: string;
+    amenities?: string[];
+    location_benefits?: string[];
+    market_analysis?: string;
+    risk_assessment?: string;
+    legal_status?: string;
+    environmental_clearance?: boolean;
+    building_approvals?: string[];
+    total_floors?: number;
+    parking_spaces?: number;
+    construction_year?: number;
+    last_renovation_year?: number;
 }
 
 export interface SubmitPropertyPayload {
@@ -64,16 +81,59 @@ export interface TokenizePayload {
     tx_signature?: string;
 }
 
+function isGetRequest(options?: RequestInit): boolean {
+    return !options?.method || options.method.toUpperCase() === "GET";
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-    const res = await fetch(`${API_BASE}${path}`, {
-        headers: { "Content-Type": "application/json" },
-        ...options,
-    });
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || "API error");
+    const cacheKey = `${API_BASE}${path}`;
+    const canUseCache = isGetRequest(options);
+
+    if (canUseCache) {
+        const cached = responseCache.get(cacheKey);
+        if (cached && cached.expiry > Date.now()) {
+            return cached.data as T;
+        }
+
+        const inflight = inflightCache.get(cacheKey);
+        if (inflight) {
+            return inflight as Promise<T>;
+        }
     }
-    return res.json() as Promise<T>;
+
+    const requestPromise = (async (): Promise<T> => {
+        let res: Response;
+        try {
+            res = await fetch(cacheKey, {
+                headers: { "Content-Type": "application/json" },
+                ...options,
+            });
+        } catch {
+            throw new Error(`Backend unavailable at ${API_BASE}`);
+        }
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: res.statusText }));
+            throw new Error(err.error || "API error");
+        }
+
+        const data = (await res.json()) as T;
+        if (canUseCache) {
+            responseCache.set(cacheKey, { expiry: Date.now() + GET_CACHE_TTL_MS, data });
+        } else {
+            responseCache.delete(cacheKey);
+        }
+        return data;
+    })();
+
+    if (canUseCache) {
+        inflightCache.set(cacheKey, requestPromise as Promise<unknown>);
+    }
+
+    try {
+        return await requestPromise;
+    } finally {
+        if (canUseCache) inflightCache.delete(cacheKey);
+    }
 }
 
 // List all properties (optionally filtered by status)
@@ -128,8 +188,8 @@ export async function listMarketplace(): Promise<Property[]> {
 export async function getUserProfile(wallet: string): Promise<User | null> {
     try {
         return await request<User>(`/api/v1/users/${wallet}`);
-    } catch (e: any) {
-        if (e.message === "User not found") return null;
+    } catch (e: unknown) {
+        if (e instanceof Error && e.message === "User not found") return null;
         throw e;
     }
 }

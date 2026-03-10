@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { getProperty, requestTokenize, type Property } from "@/lib/api";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletProviders } from "@/components/WalletProviders";
 
 function TokenizeForm() {
   const searchParams = useSearchParams();
@@ -61,7 +62,6 @@ function TokenizeForm() {
       const connection = new Connection(process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.devnet.solana.com", "confirmed");
       const provider = new AnchorProvider(connection, (window as any).solana, { preflightCommitment: "confirmed" });
       const program = new Program(idl as any, provider);
-      const programId = program.programId;
 
       // Generate a new mint keypair
       const mintKeypair = Keypair.generate();
@@ -73,16 +73,10 @@ function TokenizeForm() {
         ASSOCIATED_TOKEN_PROGRAM_ID
       );
 
-      // Check if program ID is valid
-      if (!process.env.NEXT_PUBLIC_PROGRAM_ID) {
-        throw new Error("NEXT_PUBLIC_PROGRAM_ID not configured");
+      if (!property.on_chain_address) {
+        throw new Error("Property is missing on_chain_address. Submit and verify the property first.");
       }
-
-      // Derive Property PDA
-      const [propertyPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("property"), Buffer.from(property.name)],
-        programId
-      );
+      const propertyPDA = new PublicKey(property.on_chain_address);
 
       console.log("🚀 Initializing on-chain mint for property:", property.name);
 
@@ -358,8 +352,10 @@ function TokenizeForm() {
 
 export default function TokenizePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-700 uppercase tracking-widest text-[10px]">Synchronizing...</div>}>
-      <TokenizeForm />
-    </Suspense>
+    <WalletProviders>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-slate-700 uppercase tracking-widest text-[10px]">Synchronizing...</div>}>
+        <TokenizeForm />
+      </Suspense>
+    </WalletProviders>
   );
 }

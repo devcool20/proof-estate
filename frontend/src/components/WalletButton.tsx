@@ -1,8 +1,7 @@
 "use client";
 
-import { useWallet } from "@solana/wallet-adapter-react";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { WalletProviders } from "./WalletProviders";
 
 // Using a dynamic import for the standard adapter button to avoid SSR issues
 const BaseWalletMultiButton = dynamic(
@@ -11,24 +10,11 @@ const BaseWalletMultiButton = dynamic(
 );
 
 export function WalletConnectButton() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="w-[36px] h-[36px] md:w-[40px] md:h-[40px] rounded-full bg-white/5 border border-white/10 flex items-center justify-center animate-pulse shrink-0 shadow-inner">
-        <span className="material-symbols-outlined text-[16px] md:text-[20px] text-slate-500">wallet</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="luxury-wallet-button">
-      <BaseWalletMultiButton />
-      <style jsx global>{`
+    <WalletProviders>
+      <div className="luxury-wallet-button">
+        <BaseWalletMultiButton />
+        <style jsx global>{`
         .luxury-wallet-button .wallet-adapter-button {
           background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-light) 100%) !important;
           color: black !important;
@@ -78,6 +64,7 @@ export function WalletConnectButton() {
           margin: 0 !important;
         }
       `}</style>
-    </div>
+      </div>
+    </WalletProviders>
   );
 }

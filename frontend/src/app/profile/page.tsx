@@ -1,15 +1,14 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/AuthContext";
-import { createUserProfile, getUserProfile, type User } from "@/lib/api";
+import { createUserProfile } from "@/lib/api";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { WalletProviders } from "@/components/WalletProviders";
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const { user, setUser } = useAuth();
   const { publicKey } = useWallet();
-  const router = useRouter();
   
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -58,8 +57,8 @@ export default function ProfilePage() {
       // Auto-hide success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000);
       
-    } catch (err: any) {
-      setError(err.message || "Failed to update profile");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update profile");
     } finally {
       setLoading(false);
     }
@@ -223,5 +222,13 @@ export default function ProfilePage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <WalletProviders>
+      <ProfilePageContent />
+    </WalletProviders>
   );
 }

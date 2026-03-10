@@ -14,10 +14,12 @@ function formatInr(paise?: number) {
 export default function ExplorePage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     listMarketplace()
       .then(setProperties)
+      .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -65,6 +67,10 @@ export default function ExplorePage() {
                     <div key={i} className="glass-panel rounded-3xl h-[400px] animate-pulse border-white/5" />
                   ))}
                 </div>
+            ) : error ? (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
+                  <p className="text-red-300 text-sm">{error}</p>
+                </div>
             ) : properties.length === 0 ? (
                 <div className="glass-panel rounded-3xl p-20 text-center border-white/10 group">
                    <div className="size-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-8">
@@ -97,24 +103,22 @@ export default function ExplorePage() {
 
 function MetricCard({ title, icon, value, color, glow }: { title: string, icon: string, value: string, color: string, glow: string }) {
  return (
-   <div className={`glass-panel p-8 rounded-3xl border-white/10 transition-all hover:border-white/20 group relative overflow-hidden ${glow}`}>
+   <div className={`rounded-2xl border border-white/10 bg-[#0d1117] p-6 ${glow}`}>
      <div className="flex justify-between items-start mb-6">
        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{title}</p>
        <span className={`material-symbols-outlined text-[20px] ${color} opacity-60`}>{icon}</span>
      </div>
-     <p className={`text-3xl md:text-4xl font-light text-white tracking-tight heading-display mb-1`}>{value}</p>
-     <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-[#10B981]">
-       <span className="material-symbols-outlined text-[14px]">trending_up</span> Live
-     </div>
+     <p className="text-3xl md:text-4xl font-light text-white tracking-tight heading-display mb-1">{value}</p>
+     <p className="text-[11px] text-slate-500">Updated from marketplace feed</p>
    </div>
  );
 }
 
 function ListingCard({ id, image, type, name, location, yieldRate, price }: { id: string, image: string, type: string, name: string, location: string, yieldRate: string, price: string }) {
  return (
-   <Link href={`/explore/${id}`} className="glass-panel group rounded-3xl overflow-hidden border-white/10 transition-all duration-500 hover:border-[#00F0FF]/30 hover:-translate-y-1 block relative">
+   <Link href={`/explore/${id}`} className="group block overflow-hidden rounded-2xl border border-white/10 bg-[#0d1117] transition-colors hover:border-white/20">
      <div className="relative h-64 w-full overflow-hidden">
-       <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110" style={{ backgroundImage: `url('${image}')` }}></div>
+       <div className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105" style={{ backgroundImage: `url('${image}')` }}></div>
        <div className="absolute inset-0 bg-gradient-to-t from-[#060606] via-transparent to-transparent opacity-80" />
        
        <div className="absolute top-4 left-4 flex gap-2">
@@ -125,9 +129,9 @@ function ListingCard({ id, image, type, name, location, yieldRate, price }: { id
        </div>
      </div>
      
-     <div className="p-8 flex flex-col gap-6 relative z-10">
+     <div className="p-6 flex flex-col gap-5 relative z-10">
        <div className="space-y-1">
-          <h3 className="text-xl md:text-2xl font-light text-white leading-tight heading-display group-hover:text-[#00F0FF] transition-colors">{name}</h3>
+          <h3 className="text-xl md:text-2xl font-light text-white leading-tight heading-display">{name}</h3>
           <p className="text-slate-500 text-sm font-light flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[16px]">location_on</span>
             {location}
@@ -145,10 +149,10 @@ function ListingCard({ id, image, type, name, location, yieldRate, price }: { id
          </div>
        </div>
 
-       <div className="mt-2">
-          <button className="w-full h-12 border border-[#00F0FF]/30 text-[#00F0FF] hover:bg-[#00F0FF] hover:text-black hover:shadow-[0_0_20px_rgba(0,240,255,0.2)] text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 group">
-             Initialize Access
-             <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+       <div className="mt-1">
+          <button className="w-full h-11 rounded-xl border border-white/20 bg-white/5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:bg-white/10 flex items-center justify-center gap-2">
+             View Details
+             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
        </div>
      </div>

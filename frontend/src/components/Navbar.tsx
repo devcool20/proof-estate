@@ -1,15 +1,28 @@
 "use client";
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import { WalletConnectButton } from './WalletButton';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import dynamic from "next/dynamic";
 import { useAuth } from '../lib/AuthContext';
-import { SignInButton, Show, UserButton } from '@clerk/nextjs';
+import type { User } from "../lib/api";
+import { SignInButton, Show, UserButton, ClerkLoaded, ClerkFailed } from '@clerk/nextjs';
+
+const WalletConnectButton = dynamic(
+  () => import("./WalletButton").then((mod) => mod.WalletConnectButton),
+  { ssr: false }
+);
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    router.prefetch("/");
+    router.prefetch("/explore");
+    router.prefetch("/properties");
+  }, [router]);
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-white/5 bg-black/40 backdrop-blur-xl px-4 md:px-10 py-4 sticky top-0 z-[60] shadow-subtle">
@@ -36,35 +49,46 @@ export function Navbar() {
           <input className="w-full h-full rounded-xl text-sm bg-white/5 border border-white/10 pl-10 pr-4 text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all placeholder:text-slate-500 shadow-inner" placeholder="Search portfolio..." />
         </label>
         
-        <Show when="signed-in">
-          <div className="flex items-center gap-2 md:gap-3">
-            <WalletConnectButton />
-            <UserButton 
-              appearance={{
-                elements: { 
-                  userButtonAvatarBox: "h-9 w-9 md:h-10 md:w-10 border border-white/20 cursor-pointer shadow-glow hover:scale-105 transition-transform rounded-full bg-transparent overflow-hidden",
-                  userButtonTrigger: "focus:shadow-none focus:outline-none bg-transparent active:bg-transparent hover:bg-transparent p-0 border-none",
-                }
-              }}
-            >
-              <UserButton.MenuItems>
-                <UserButton.Link
-                  label="Protocol Settings"
-                  labelIcon={<span className="material-symbols-outlined text-[16px] text-primary">manage_accounts</span>}
-                  href="/profile"
-                />
-              </UserButton.MenuItems>
-            </UserButton>
-          </div>
-        </Show>
+        <ClerkLoaded>
+          <Show when="signed-in">
+            <div className="flex items-center gap-2 md:gap-3">
+              <WalletConnectButton />
+              <UserButton 
+                appearance={{
+                  elements: { 
+                    userButtonAvatarBox: "h-9 w-9 md:h-10 md:w-10 border border-white/20 cursor-pointer shadow-glow hover:scale-105 transition-transform rounded-full bg-transparent overflow-hidden",
+                    userButtonTrigger: "focus:shadow-none focus:outline-none bg-transparent active:bg-transparent hover:bg-transparent p-0 border-none",
+                  }
+                }}
+              >
+                <UserButton.MenuItems>
+                  <UserButton.Link
+                    label="Protocol Settings"
+                    labelIcon={<span className="material-symbols-outlined text-[16px] text-primary">manage_accounts</span>}
+                    href="/profile"
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
+            </div>
+          </Show>
 
-        <Show when="signed-out">
-          <SignInButton mode="modal">
-            <button className="h-9 md:h-10 px-4 md:px-6 font-medium text-xs md:text-sm rounded-xl bg-primary text-black hover:bg-[#b08d24] transition-all shadow-glow hover:scale-[1.02] active:scale-[0.98]">
-              Sign In
-            </button>
-          </SignInButton>
-        </Show>
+          <Show when="signed-out">
+            <SignInButton mode="modal">
+              <button className="h-9 md:h-10 px-4 md:px-6 font-medium text-xs md:text-sm rounded-xl bg-primary text-black hover:bg-[#b08d24] transition-all shadow-glow hover:scale-[1.02] active:scale-[0.98]">
+                Sign In
+              </button>
+            </SignInButton>
+          </Show>
+        </ClerkLoaded>
+
+        <ClerkFailed>
+          <button
+            onClick={() => window.location.reload()}
+            className="h-9 md:h-10 px-4 md:px-6 font-medium text-xs md:text-sm rounded-xl bg-primary text-black hover:bg-[#b08d24] transition-all shadow-glow hover:scale-[1.02] active:scale-[0.98]"
+          >
+            Sign In
+          </button>
+        </ClerkFailed>
       </div>
 
       {/* Mobile Drawer */}
@@ -84,7 +108,7 @@ export function Navbar() {
   );
 }
 
-function NavLinks({ pathname, user, mobile, onClick }: { pathname: string, user: any, mobile?: boolean, onClick?: () => void }) {
+function NavLinks({ pathname, user, mobile, onClick }: { pathname: string, user: User | null, mobile?: boolean, onClick?: () => void }) {
   return (
     <>
       <NavLink href="/" active={pathname === "/"} label="Home" mobile={mobile} onClick={onClick} />

@@ -15,6 +15,18 @@ interface FormData {
   owner_wallet: string;
   document_url: string;
   image_url: string;
+  description: string;
+  amenities: string[];
+  location_benefits: string[];
+  market_analysis: string;
+  risk_assessment: string;
+  legal_status: string;
+  environmental_clearance: boolean;
+  building_approvals: string[];
+  total_floors: string;
+  parking_spaces: string;
+  construction_year: string;
+  last_renovation_year: string;
 }
 
 const STEPS = ["Property Details", "Document Hash", "Sign & Submit"];
@@ -32,6 +44,18 @@ export default function VerifyPage() {
     owner_wallet: "",
     document_url: "",
     image_url: "",
+    description: "",
+    amenities: [],
+    location_benefits: [],
+    market_analysis: "",
+    risk_assessment: "",
+    legal_status: "clear",
+    environmental_clearance: false,
+    building_approvals: [],
+    total_floors: "",
+    parking_spaces: "",
+    construction_year: "",
+    last_renovation_year: "",
   });
 
   useEffect(() => {
@@ -64,8 +88,9 @@ export default function VerifyPage() {
     const file = e.target.files?.[0];
     if (file) {
       setImageFileSelected(file.name);
-      // In production: upload to S3/IPFS and get a URL back
-      setForm((prev) => ({ ...prev, image_url: `https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=2000` }));
+      // NOTE: we don't actually upload the file yet.
+      // For now, the image shown in detail view comes from `image_url`,
+      // so the user should paste a hosted image URL into the field below.
     }
   };
 
@@ -250,6 +275,60 @@ export default function VerifyPage() {
                     <input name="owner_wallet" value={form.owner_wallet} readOnly placeholder="Not connected"
                       className="w-full h-14 px-5 border border-white/5 rounded-xl bg-black/60 text-slate-400 cursor-not-allowed outline-none font-mono text-sm" />
                   </label>
+                  {/* Description */}
+                  <label className="block">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Property Description</span>
+                    <textarea name="description" value={form.description} onChange={handleChange} placeholder="Describe the property, its features, and investment potential..."
+                      rows={4}
+                      className="w-full px-5 py-4 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light resize-none" />
+                  </label>
+
+                  {/* Building Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <label className="block">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Total Floors</span>
+                      <input name="total_floors" value={form.total_floors} onChange={handleChange} placeholder="15" type="number"
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Parking Spaces</span>
+                      <input name="parking_spaces" value={form.parking_spaces} onChange={handleChange} placeholder="50" type="number"
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Construction Year</span>
+                      <input name="construction_year" value={form.construction_year} onChange={handleChange} placeholder="2020" type="number"
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light text-lg" />
+                    </label>
+                  </div>
+
+                  {/* Market Analysis */}
+                  <label className="block">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Market Analysis</span>
+                    <textarea name="market_analysis" value={form.market_analysis} onChange={handleChange} placeholder="Current market conditions, comparable properties, growth projections..."
+                      rows={3}
+                      className="w-full px-5 py-4 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white placeholder:text-slate-600 font-light resize-none" />
+                  </label>
+
+                  {/* Legal Status */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <label className="block">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Legal Status</span>
+                      <select name="legal_status" value={form.legal_status} onChange={handleChange}
+                        className="w-full h-14 px-5 border border-white/10 rounded-xl bg-black/40 focus:bg-white/5 focus:border-primary outline-none transition-all text-white font-light text-lg">
+                        <option value="clear">Clear Title</option>
+                        <option value="pending">Pending Clearance</option>
+                        <option value="disputed">Under Dispute</option>
+                        <option value="encumbered">Encumbered</option>
+                      </select>
+                    </label>
+                    <label className="flex items-center gap-3 pt-8">
+                      <input type="checkbox" name="environmental_clearance" checked={form.environmental_clearance} 
+                        onChange={(e) => setForm(prev => ({ ...prev, environmental_clearance: e.target.checked }))}
+                        className="w-5 h-5 rounded border-white/20 bg-black/40 text-primary focus:ring-primary/50" />
+                      <span className="text-white font-light">Environmental Clearance Obtained</span>
+                    </label>
+                  </div>
                 </div>
                 <div className="mt-10 pt-8 border-t border-white/5 flex justify-end">
                   <button

@@ -1,0 +1,25 @@
+{
+  "name": "proofestate-database-tools",
+  "version": "1.0.0",
+  "description": "Database inspection and analysis tools for ProofEstate",
+  "main": "inspect_database.js",
+  "scripts": {
+    "inspect": "node inspect_database.js",
+    "db:inspect": "node inspect_database.js",
+    "db:connect": "psql \"postgresql://postgres:password123@localhost:5432/proofestate_db\"",
+    "db:backup": "pg_dump -h localhost -p 5432 -U postgres -d proofestate_db > backup_$(date +%Y%m%d_%H%M%S).sql",
+    "db:status": "psql \"postgresql://postgres:password123@localhost:5432/proofestate_db\" -c \"SELECT COUNT(*) as total_properties FROM properties; SELECT status, COUNT(*) FROM properties GROUP BY status;\""
+  },
+  "dependencies": {
+    "pg": "^8.11.3"
+  },
+  "keywords": [
+    "database",
+    "postgresql",
+    "real-estate",
+    "blockchain",
+    "solana"
+  ],
+  "author": "ProofEstate Team",
+  "license": "MIT"
+}

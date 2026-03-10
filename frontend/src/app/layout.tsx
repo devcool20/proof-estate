@@ -9,13 +9,13 @@ import { dark } from "@clerk/themes";
 const playfair = Playfair_Display({
  variable: "--font-playfair",
  subsets: ["latin"],
- weight: ["400", "500", "600", "700", "800", "900"],
+ weight: ["400", "600", "700"],
 });
 
 const plusJakarta = Plus_Jakarta_Sans({
  variable: "--font-jakarta",
  subsets: ["latin"],
- weight: ["400", "500", "600", "700", "800"],
+ weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +29,10 @@ export default function RootLayout({
  children: React.ReactNode;
 }>) {
  return (
- <ClerkProvider appearance={{ baseTheme: dark }}>
+ <ClerkProvider 
+   publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+   appearance={{ baseTheme: dark }}
+ >
  <html lang="en" className="dark scroll-smooth">
  <head>
  <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -7,13 +7,16 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use tower_http::cors::CorsLayer;
 use std::net::SocketAddr;
+use std::str::FromStr;
 use sqlx::{postgres::PgPoolOptions, PgPool, Row};
 use uuid::Uuid;
 use chrono::Utc;
 use std::sync::Arc;
 use sha2::{Sha256, Digest};
+use solana_sdk::pubkey::Pubkey;
 
 mod solana_service;
+mod real_time_endpoints;
 use solana_service::SolanaService;
 
 // ────────────────────────────────────────────────────────────
@@ -98,6 +101,49 @@ async fn main() {
                 let _ = sqlx::query("
                     ALTER TABLE properties ADD COLUMN IF NOT EXISTS image_url VARCHAR;
                 ").execute(&p).await;
+
+                // Add new columns for dynamic content
+                let _ = sqlx::query("
+                    ALTER TABLE properties 
+                    ADD COLUMN IF NOT EXISTS description TEXT,
+                    ADD COLUMN IF NOT EXISTS amenities TEXT[],
+                    ADD COLUMN IF NOT EXISTS location_benefits TEXT[],
+                    ADD COLUMN IF NOT EXISTS market_analysis TEXT,
+                    ADD COLUMN IF NOT EXISTS risk_assessment TEXT,
+                    ADD COLUMN IF NOT EXISTS legal_status TEXT,
+                    ADD COLUMN IF NOT EXISTS environmental_clearance BOOLEAN DEFAULT false,
+                    ADD COLUMN IF NOT EXISTS building_approvals TEXT[],
+                    ADD COLUMN IF NOT EXISTS total_floors INTEGER,
+                    ADD COLUMN IF NOT EXISTS parking_spaces INTEGER,
+                    ADD COLUMN IF NOT EXISTS construction_year INTEGER,
+                    ADD COLUMN IF NOT EXISTS last_renovation_year INTEGER;
+                ").execute(&p).await;
+
+                // Create rent_distributions table for tracking real rent payments
+                let _ = sqlx::query("
+                    CREATE TABLE IF NOT EXISTS rent_distributions (
+                        id SERIAL PRIMARY KEY,
+                        property_id UUID NOT NULL REFERENCES properties(id),
+                        distribution_date TIMESTAMPTZ NOT NULL DEFAULT now(),
+                        total_amount_usdc DECIMAL(18,6) NOT NULL,
+                        total_tokens_eligible BIGINT NOT NULL,
+                        rate_per_token DECIMAL(18,12) NOT NULL,
+                        tx_signature TEXT,
+                        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    );
+                ").execute(&p).await;
+
+                // Create token_holdings table for tracking real token ownership
+                let _ = sqlx::query("
+                    CREATE TABLE IF NOT EXISTS token_holdings (
+                        id SERIAL PRIMARY KEY,
+                        property_id UUID NOT NULL REFERENCES properties(id),
+                        holder_wallet TEXT NOT NULL,
+                        token_amount BIGINT NOT NULL,
+                        last_updated TIMESTAMPTZ NOT NULL DEFAULT now(),
+                        UNIQUE(property_id, holder_wallet)
+                    );
+                ").execute(&p).await;
                 
                 // Set default images for the specific seeded properties in case they were backfilled with the same image
                 let property_images = vec![
@@ -121,98 +167,8 @@ async fn main() {
                     .await
                     .unwrap_or(0);
 
-                if count == 0 {
-                    println!("🌱 Seeding real Delhi property data with persistent IDs...");
-                    
-                    // 1. Create Government User
-                    let _ = sqlx::query("
-                        INSERT INTO users (wallet, name, email, role)
-                        VALUES ('user_2tvQf9oV7jQ3kX9p5m1nR0a8Z3Y', 'Delhi Development Authority (DDA)', 'admin@dda.gov.in', 'owner')
-                        ON CONFLICT (wallet) DO NOTHING
-                    ").execute(&p).await;
-
-                    // 2. Insert Properties with FIXED IDs (to survive restarts)
-                    let properties = vec![
-                        (
-                            Uuid::parse_str("d1526e1e-8c27-4978-94d5-802e6b01216e").unwrap(),
-                            "DDA Commercial Tower, Nehru Place",
-                            "Nehru Place, New Delhi, 110019",
-                            "Commercial",
-                            45000_i64,
-                            120000000_i64, 
-                            "verified",
-                            "/docs/deed_1.png"
-                        ),
-                        (
-                            Uuid::parse_str("d2526e1e-8c27-4978-94d5-802e6b01216f").unwrap(),
-                            "Okhla Industrial Plot 42",
-                            "Phase III, Okhla Industrial Estate, New Delhi, 110020",
-                            "warehouse",
-                            12000_i64,
-                            18000000_i64,
-                            "verified",
-                            "/docs/deed_2.png"
-                        ),
-                        (
-                            Uuid::parse_str("d3526e1e-8c27-4978-94d5-802e6b012170").unwrap(),
-                            "Dwarka Sector 18 Residential Plot",
-                            "Sec 18, Dwarka, New Delhi, 110075",
-                            "residential",
-                            5500_i64,
-                            850000000_i64,
-                            "pending_verification",
-                            "/docs/deed_1.png"
-                        ),
-                        (
-                            Uuid::parse_str("d4526e1e-8c27-4978-94d5-802e6b012171").unwrap(),
-                            "Vasant Kunj Community Hub",
-                            "Pocket 2, Sector C, Vasant Kunj, New Delhi, 110070",
-                            "land",
-                            25000_i64,
-                            650000000_i64,
-                            "tokenized",
-                            "/docs/deed_2.png"
-                        ),
-                        (
-                            Uuid::parse_str("d5526e1e-8c27-4978-94d5-802e6b012172").unwrap(),
-                            "Cyber City Tech Park - Tower B",
-                            "DLF Cyber City, Phase 2, Gurugram, 122002",
-                            "Commercial",
-                            120000_i64,
-                            2500000000_i64, 
-                            "verified",
-                            "/docs/deed_1.png"
-                        ),
-                        (
-                            Uuid::parse_str("d6526e1e-8c27-4978-94d5-802e6b012173").unwrap(),
-                            "Rohini Sector 11 Industrial Shed",
-                            "Plot 88, Sector 11, Rohini, Delhi, 110085",
-                            "warehouse",
-                            8500_i64,
-                            12000000_i64,
-                            "verified",
-                            "/docs/deed_2.png"
-                        )
-                    ];
-
-                    for (id, name, addr, ptype, area, val, status, doc) in properties {
-                        let _ = sqlx::query("
-                            INSERT INTO properties (id, owner_wallet, name, address, property_type, area_sqft, asset_value_inr, status, document_url, image_url, created_at)
-                            VALUES ($1, 'user_2tvQf9oV7jQ3kX9p5m1nR0a8Z3Y', $2, $3, $4, $5, $6, $7, $8, 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=2000', now())
-                            ON CONFLICT (id) DO NOTHING
-                        ")
-                        .bind(id)
-                        .bind(name)
-                        .bind(addr)
-                        .bind(ptype)
-                        .bind(area)
-                        .bind(val)
-                        .bind(status)
-                        .bind(doc)
-                        .execute(&p).await;
-                    }
-                    println!("✅ Seeding complete.");
-                }
+                // No hardcoded seed data - all properties come from real user submissions
+                println!("✅ Database initialized. Ready for real property submissions (count: {})", count);
                 
                 Some(p)
             }
@@ -274,6 +230,12 @@ async fn main() {
         // User Profiles
         .route("/api/v1/users",                    post(create_user))
         .route("/api/v1/users/:wallet",            get(get_user))
+        // Real-time data endpoints
+        .route("/api/v1/properties/:id/rent_distributions", get(real_time_endpoints::get_rent_distributions))
+        .route("/api/v1/properties/:id/token_holdings",     get(real_time_endpoints::get_token_holdings))
+        .route("/api/v1/properties/:id/claimable_rent/:wallet", get(real_time_endpoints::get_claimable_rent))
+        // Admin correlation analysis
+        .route("/api/v1/admin/correlation_analysis", get(real_time_endpoints::get_correlation_analysis))
         // Static Documents
         .nest_service("/docs", tower_http::services::ServeDir::new("public/docs"))
         .layer(CorsLayer::permissive())
@@ -299,29 +261,41 @@ async fn main() {
 // ────────────────────────────────────────────────────────────
 #[derive(Serialize, Clone)]
 struct PropertyRow {
-    id:                String,
-    name:              String,
-    address:           String,
-    city:              Option<String>,
-    country:           Option<String>,
-    area_sqft:         Option<i64>,
-    property_type:     Option<String>,
-    asset_value_inr:   Option<i64>,
-    metadata_hash:     Option<String>,
-    on_chain_address:  Option<String>,
-    token_mint:        Option<String>,
-    status:            String,
-    token_supply:      Option<i64>,
-    token_price_usd:   Option<f64>,
-    yield_percent:     Option<f64>,
-    dist_frequency:    Option<String>,
-    owner_wallet:      String,
-    submitted_at:      Option<String>,
-    verified_at:       Option<String>,
-    tokenized_at:      Option<String>,
-    created_at:        String,
-    document_url:      Option<String>,
-    image_url:         Option<String>,
+    id:                     String,
+    name:                   String,
+    address:                String,
+    city:                   Option<String>,
+    country:                Option<String>,
+    area_sqft:              Option<i64>,
+    property_type:          Option<String>,
+    asset_value_inr:        Option<i64>,
+    metadata_hash:          Option<String>,
+    on_chain_address:       Option<String>,
+    token_mint:             Option<String>,
+    status:                 String,
+    token_supply:           Option<i64>,
+    token_price_usd:        Option<f64>,
+    yield_percent:          Option<f64>,
+    dist_frequency:         Option<String>,
+    owner_wallet:           String,
+    submitted_at:           Option<String>,
+    verified_at:            Option<String>,
+    tokenized_at:           Option<String>,
+    created_at:             String,
+    document_url:           Option<String>,
+    image_url:              Option<String>,
+    description:            Option<String>,
+    amenities:              Option<Vec<String>>,
+    location_benefits:      Option<Vec<String>>,
+    market_analysis:        Option<String>,
+    risk_assessment:        Option<String>,
+    legal_status:           Option<String>,
+    environmental_clearance: Option<bool>,
+    building_approvals:     Option<Vec<String>>,
+    total_floors:           Option<i32>,
+    parking_spaces:         Option<i32>,
+    construction_year:      Option<i32>,
+    last_renovation_year:   Option<i32>,
 }
 
 // ────────────────────────────────────────────────────────────
@@ -356,7 +330,10 @@ async fn list_properties(
             "SELECT id, name, address, city, country, area_sqft, property_type,
                     asset_value_inr, metadata_hash, on_chain_address, token_mint, status,
                     token_supply, token_price_usd, yield_percent, dist_frequency,
-                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, document_url, image_url
+                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, 
+                    document_url, image_url, description, amenities, location_benefits,
+                    market_analysis, risk_assessment, legal_status, environmental_clearance,
+                    building_approvals, total_floors, parking_spaces, construction_year, last_renovation_year
              FROM properties
              WHERE ($1::text IS NULL OR status = $1)
              ORDER BY created_at DESC",
@@ -397,8 +374,20 @@ async fn list_properties(
                     created_at:      r.try_get::<chrono::DateTime<Utc>, _>("created_at")
                                       .unwrap_or_default()
                                       .to_rfc3339(),
-                    document_url:    r.try_get("document_url").ok(),
-                    image_url:       r.try_get("image_url").ok(),
+                    document_url:           r.try_get("document_url").ok(),
+                    image_url:              r.try_get("image_url").ok(),
+                    description:            r.try_get("description").ok(),
+                    amenities:              r.try_get::<Option<Vec<String>>, _>("amenities").unwrap_or_default(),
+                    location_benefits:      r.try_get::<Option<Vec<String>>, _>("location_benefits").unwrap_or_default(),
+                    market_analysis:        r.try_get("market_analysis").ok(),
+                    risk_assessment:        r.try_get("risk_assessment").ok(),
+                    legal_status:           r.try_get("legal_status").ok(),
+                    environmental_clearance: r.try_get::<Option<bool>, _>("environmental_clearance").unwrap_or_default(),
+                    building_approvals:     r.try_get::<Option<Vec<String>>, _>("building_approvals").unwrap_or_default(),
+                    total_floors:           r.try_get::<Option<i32>, _>("total_floors").unwrap_or_default(),
+                    parking_spaces:         r.try_get::<Option<i32>, _>("parking_spaces").unwrap_or_default(),
+                    construction_year:      r.try_get::<Option<i32>, _>("construction_year").unwrap_or_default(),
+                    last_renovation_year:   r.try_get::<Option<i32>, _>("last_renovation_year").unwrap_or_default(),
                 }).collect();
                 (StatusCode::OK, Json(props)).into_response()
             }
@@ -427,7 +416,10 @@ async fn get_property(
             "SELECT id, name, address, city, country, area_sqft, property_type,
                     asset_value_inr, metadata_hash, on_chain_address, token_mint, status,
                     token_supply, token_price_usd, yield_percent, dist_frequency,
-                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, document_url, image_url
+                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, 
+                    document_url, image_url, description, amenities, location_benefits,
+                    market_analysis, risk_assessment, legal_status, environmental_clearance,
+                    building_approvals, total_floors, parking_spaces, construction_year, last_renovation_year
              FROM properties WHERE id = $1"
         )
         .bind(property_uuid)
@@ -458,8 +450,20 @@ async fn get_property(
                     verified_at:     r.try_get::<Option<chrono::DateTime<Utc>>, _>("verified_at").unwrap_or_default().map(|d| d.to_rfc3339()),
                     tokenized_at:    r.try_get::<Option<chrono::DateTime<Utc>>, _>("tokenized_at").unwrap_or_default().map(|d| d.to_rfc3339()),
                     created_at:      r.get::<chrono::DateTime<Utc>, _>("created_at").to_rfc3339(),
-                    document_url:    r.try_get("document_url").ok(),
-                    image_url:       r.try_get("image_url").ok(),
+                    document_url:           r.try_get("document_url").ok(),
+                    image_url:              r.try_get("image_url").ok(),
+                    description:            r.try_get("description").ok(),
+                    amenities:              r.try_get::<Option<Vec<String>>, _>("amenities").unwrap_or_default(),
+                    location_benefits:      r.try_get::<Option<Vec<String>>, _>("location_benefits").unwrap_or_default(),
+                    market_analysis:        r.try_get("market_analysis").ok(),
+                    risk_assessment:        r.try_get("risk_assessment").ok(),
+                    legal_status:           r.try_get("legal_status").ok(),
+                    environmental_clearance: r.try_get::<Option<bool>, _>("environmental_clearance").unwrap_or_default(),
+                    building_approvals:     r.try_get::<Option<Vec<String>>, _>("building_approvals").unwrap_or_default(),
+                    total_floors:           r.try_get::<Option<i32>, _>("total_floors").unwrap_or_default(),
+                    parking_spaces:         r.try_get::<Option<i32>, _>("parking_spaces").unwrap_or_default(),
+                    construction_year:      r.try_get::<Option<i32>, _>("construction_year").unwrap_or_default(),
+                    last_renovation_year:   r.try_get::<Option<i32>, _>("last_renovation_year").unwrap_or_default(),
                 };
                 (StatusCode::OK, Json(prop)).into_response()
             }
@@ -474,17 +478,29 @@ async fn get_property(
 // POST /api/v1/properties/submit
 #[derive(Deserialize)]
 struct SubmitPropertyReq {
-    owner_wallet:    String,
-    name:            String,
-    address:         String,
-    city:            Option<String>,
-    property_type:   Option<String>,
-    area_sqft:       Option<i64>,
-    asset_value_inr: Option<i64>,
-    document_url:    Option<String>,
-    image_url:       Option<String>,
+    owner_wallet:           String,
+    name:                   String,
+    address:                String,
+    city:                   Option<String>,
+    property_type:          Option<String>,
+    area_sqft:              Option<i64>,
+    asset_value_inr:        Option<i64>,
+    document_url:           Option<String>,
+    image_url:              Option<String>,
     /// IPFS / Arweave URI to the uploaded title deed document
-    metadata_uri:    Option<String>,
+    metadata_uri:           Option<String>,
+    description:            Option<String>,
+    amenities:              Option<Vec<String>>,
+    location_benefits:      Option<Vec<String>>,
+    market_analysis:        Option<String>,
+    risk_assessment:        Option<String>,
+    legal_status:           Option<String>,
+    environmental_clearance: Option<bool>,
+    building_approvals:     Option<Vec<String>>,
+    total_floors:           Option<i32>,
+    parking_spaces:         Option<i32>,
+    construction_year:      Option<i32>,
+    last_renovation_year:   Option<i32>,
 }
 
 #[derive(Serialize)]
@@ -521,24 +537,36 @@ async fn submit_property(
         .execute(pool)
         .await;
 
-        // 2. Initialize On-Chain
+        // 2. Initialize on-chain using a canonical 32-byte seed key.
+        // We use UUID without hyphens so PDA derivation is stable and always seed-safe.
         let mut tx_sig = String::new();
         let meta_uri = payload.metadata_uri.as_deref().unwrap_or("");
-        match state.solana.initialize_on_chain(&payload.name, &metadata_hash, meta_uri).await {
+        let property_seed_key = property_id.simple().to_string();
+        match state.solana.initialize_on_chain(&property_seed_key, &metadata_hash, meta_uri).await {
             Ok(sig) => tx_sig = sig,
             Err(e) => eprintln!("❌ On-chain initialization failed: {}", e),
         }
-        
-        // Generate a mock PDA for development/testing when Solana is not available
-        let hash = Sha256::digest(payload.name.as_bytes());
-        let on_chain_address = format!("mock_pda_{:x}", hash.iter().take(8).fold(0u64, |acc, &b| (acc << 8) | b as u64));
+        let (property_pda, _) = match state.solana.get_property_pda(&property_seed_key) {
+            Ok(pda) => pda,
+            Err(e) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({ "error": format!("invalid property seed key: {}", e) })),
+                )
+                    .into_response();
+            }
+        };
+        let on_chain_address = property_pda.to_string();
 
         // 3. Insert property
         let result = sqlx::query(
             "INSERT INTO properties
                 (id, owner_wallet, name, address, city, property_type, area_sqft,
-                 asset_value_inr, document_url, image_url, metadata_hash, on_chain_address, status, submitted_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending_verification', now())
+                 asset_value_inr, document_url, image_url, metadata_hash, on_chain_address, status, submitted_at,
+                 description, amenities, location_benefits, market_analysis, risk_assessment, legal_status,
+                 environmental_clearance, building_approvals, total_floors, parking_spaces, construction_year, last_renovation_year)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending_verification', now(),
+                     $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24)
              RETURNING id"
         )
         .bind(property_id)
@@ -552,7 +580,19 @@ async fn submit_property(
         .bind(&payload.document_url)
         .bind(&payload.image_url)
         .bind(&metadata_hash)
-        .bind(on_chain_address.to_string())
+        .bind(&on_chain_address)
+        .bind(&payload.description)
+        .bind(&payload.amenities)
+        .bind(&payload.location_benefits)
+        .bind(&payload.market_analysis)
+        .bind(&payload.risk_assessment)
+        .bind(&payload.legal_status)
+        .bind(payload.environmental_clearance)
+        .bind(&payload.building_approvals)
+        .bind(payload.total_floors)
+        .bind(payload.parking_spaces)
+        .bind(payload.construction_year)
+        .bind(payload.last_renovation_year)
         .fetch_one(pool)
         .await;
 
@@ -624,14 +664,20 @@ async fn verify_property(
         .bind(property_uuid)
         .execute(pool).await;
 
-        // 2. Perform On-Chain Verification (approved or rejected)
+        // 2. Perform on-chain verification (approved or rejected)
         let mut tx_sig = String::new();
-        // Get the property name to derive the PDA seeds
-        if let Ok(row) = sqlx::query("SELECT name FROM properties WHERE id = $1").bind(property_uuid).fetch_one(pool).await {
-            let name: String = row.get("name");
-            match state.solana.verify_on_chain(&name, payload.approved).await {
-                Ok(sig) => tx_sig = sig,
-                Err(e) => eprintln!("❌ On-chain verification failed: {}", e),
+        if let Ok(row) = sqlx::query("SELECT on_chain_address FROM properties WHERE id = $1").bind(property_uuid).fetch_one(pool).await {
+            let on_chain_address: Option<String> = row.try_get("on_chain_address").ok();
+            if let Some(address) = on_chain_address {
+                match Pubkey::from_str(&address) {
+                    Ok(property_pubkey) => {
+                        match state.solana.verify_on_chain_by_address(&property_pubkey, payload.approved).await {
+                            Ok(sig) => tx_sig = sig,
+                            Err(e) => eprintln!("❌ On-chain verification failed: {}", e),
+                        }
+                    }
+                    Err(e) => eprintln!("❌ Invalid on_chain_address '{}': {}", address, e),
+                }
             }
         }
 
@@ -784,33 +830,43 @@ async fn approve_tokenization(
 ) -> impl IntoResponse {
     println!("✅ Admin {} approving tokenization for property {}", payload.admin_wallet, id);
 
-    let token_mint = format!("Mint{}", &sha256_hex(&format!("{}:{}", id, Utc::now().timestamp()))[..32]);
-
     if let Some(ref pool) = state.db {
         let property_uuid = match Uuid::parse_str(&id) {
             Ok(u) => u,
             Err(_) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "invalid id" }))).into_response(),
         };
 
-        let row = sqlx::query("SELECT status FROM properties WHERE id = $1")
+        let row = sqlx::query("SELECT status, token_mint FROM properties WHERE id = $1")
             .bind(property_uuid)
             .fetch_one(pool)
             .await;
 
+        let token_mint: String;
         match row {
             Ok(r) => {
                 let status: String = r.get("status");
                 if status != "pending_tokenization" {
                     return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": "Property is not pending tokenization" }))).into_response();
                 }
+                token_mint = match r.try_get::<Option<String>, _>("token_mint").ok().flatten() {
+                    Some(mint) => mint,
+                    None => {
+                        return (
+                            StatusCode::BAD_REQUEST,
+                            Json(serde_json::json!({
+                                "error": "On-chain token mint missing. Owner must submit tokenization transaction first."
+                            })),
+                        )
+                            .into_response();
+                    }
+                };
             }
             Err(e) => return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "error": e.to_string() }))).into_response(),
         }
 
         let _ = sqlx::query(
-            "UPDATE properties SET status = 'tokenized', token_mint = $1, tokenized_at = now() WHERE id = $2"
+            "UPDATE properties SET status = 'tokenized', tokenized_at = now() WHERE id = $1"
         )
-        .bind(&token_mint)
         .bind(property_uuid)
         .execute(pool).await;
 
@@ -823,9 +879,9 @@ async fn approve_tokenization(
         
         (StatusCode::OK, Json(ApproveTokenizeResp {
             property_id:  id,
-            token_mint,
+            token_mint: token_mint.clone(),
             status:       "tokenized".into(),
-            message:      "Property tokenized successfully. SPL tokens minted.".into(),
+            message:      "Property tokenization approved with on-chain mint recorded.".into(),
         })).into_response()
     } else {
         (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
@@ -841,7 +897,10 @@ async fn list_tokenized(
             "SELECT id, name, address, city, country, area_sqft, property_type,
                     asset_value_inr, metadata_hash, on_chain_address, token_mint, status,
                     token_supply, token_price_usd, yield_percent, dist_frequency,
-                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, document_url, image_url 
+                    owner_wallet, submitted_at, verified_at, tokenized_at, created_at, 
+                    document_url, image_url, description, amenities, location_benefits,
+                    market_analysis, risk_assessment, legal_status, environmental_clearance,
+                    building_approvals, total_floors, parking_spaces, construction_year, last_renovation_year
              FROM properties 
              WHERE status IN ('verified', 'tokenized', 'pending_tokenization')
              ORDER BY created_at DESC"
@@ -873,8 +932,20 @@ async fn list_tokenized(
                     verified_at:     r.try_get::<Option<chrono::DateTime<Utc>>, _>("verified_at").ok().flatten().map(|t| t.to_rfc3339()),
                     tokenized_at:    r.try_get::<Option<chrono::DateTime<Utc>>, _>("tokenized_at").ok().flatten().map(|t| t.to_rfc3339()),
                     created_at:      r.get::<chrono::DateTime<Utc>, _>("created_at").to_rfc3339(),
-                    document_url:    r.try_get("document_url").ok(),
-                    image_url:       r.try_get("image_url").ok(),
+                    document_url:           r.try_get("document_url").ok(),
+                    image_url:              r.try_get("image_url").ok(),
+                    description:            r.try_get("description").ok(),
+                    amenities:              r.try_get::<Option<Vec<String>>, _>("amenities").unwrap_or_default(),
+                    location_benefits:      r.try_get::<Option<Vec<String>>, _>("location_benefits").unwrap_or_default(),
+                    market_analysis:        r.try_get("market_analysis").ok(),
+                    risk_assessment:        r.try_get("risk_assessment").ok(),
+                    legal_status:           r.try_get("legal_status").ok(),
+                    environmental_clearance: r.try_get::<Option<bool>, _>("environmental_clearance").unwrap_or_default(),
+                    building_approvals:     r.try_get::<Option<Vec<String>>, _>("building_approvals").unwrap_or_default(),
+                    total_floors:           r.try_get::<Option<i32>, _>("total_floors").unwrap_or_default(),
+                    parking_spaces:         r.try_get::<Option<i32>, _>("parking_spaces").unwrap_or_default(),
+                    construction_year:      r.try_get::<Option<i32>, _>("construction_year").unwrap_or_default(),
+                    last_renovation_year:   r.try_get::<Option<i32>, _>("last_renovation_year").unwrap_or_default(),
                 }).collect();
                 (StatusCode::OK, Json(properties)).into_response()
             }
@@ -999,4 +1070,3 @@ async fn get_user(
         (StatusCode::SERVICE_UNAVAILABLE, Json(serde_json::json!({ "error": "Database not connected" }))).into_response()
     }
 }
-

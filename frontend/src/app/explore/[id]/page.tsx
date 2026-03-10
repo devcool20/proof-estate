@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { getProperty, getDocUrl, type Property } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletProviders } from "@/components/WalletProviders";
 
-export default function PropertyInvestPage({ params }: { params: Promise<{ id: string }> }) {
+function PropertyInvestPageContent({ params }: { params: Promise<{ id: string }> }) {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
   const { id } = React.use(params);
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,24 +51,32 @@ export default function PropertyInvestPage({ params }: { params: Promise<{ id: s
 
         // Estimate claimable rent (simplified for UI)
         // In real app, we'd fetch the rent_vault account data
-        const programIdStr = process.env.NEXT_PUBLIC_PROGRAM_ID;
-        if (!programIdStr) {
-          console.warn("NEXT_PUBLIC_PROGRAM_ID not set, skipping PDA derivation");
+        if (!property?.on_chain_address) {
+          console.warn("Property on_chain_address not set, skipping PDA derivation");
           return;
         }
-        
-        const [propertyPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("property"), Buffer.from(property!.name)],
-          new PublicKey(programIdStr)
-        );
+
+        const propertyPDA = new PublicKey(property.on_chain_address);
         const [vaultPDA] = PublicKey.findProgramAddressSync(
             [Buffer.from("rent_vault"), propertyPDA.toBuffer()],
-            new PublicKey(programIdStr)
+            new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID || "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS")
         );
         const vaultAccount = await connection.getAccountInfo(vaultPDA);
-        if (vaultAccount) {
-            // Logic to fetch USDC balance of vault and multiply by (balance / total_supply)
-            setClaimableRent("12.50"); // Mocked for demo
+        if (vaultAccount && user?.wallet) {
+            // Get real claimable rent from API
+            try {
+              const response = await fetch(`${apiBase}/api/v1/properties/${property!.id}/claimable_rent/${user.wallet}`);
+              if (response.ok) {
+                const data = await response.json();
+                setClaimableRent(data.claimable_usdc);
+                setTokenBalance(data.token_balance);
+              } else {
+                setClaimableRent("0.00");
+              }
+            } catch (error) {
+              console.error("Failed to fetch claimable rent:", error);
+              setClaimableRent("0.00");
+            }
         }
       } catch (e) {
         setTokenBalance(0);
@@ -196,9 +206,7 @@ export default function PropertyInvestPage({ params }: { params: Promise<{ id: s
                 <div className="space-y-6">
                     <h2 className="text-2xl font-light text-white heading-display border-b border-white/5 pb-4">Asset Intelligence</h2>
                     <div className="glass-panel border-white/5 rounded-3xl p-8 leading-relaxed font-light text-slate-400">
-                        {property.name} is a verified, institutional-grade commercial asset within the ProofEstate protocol. 
-                        It has been thoroughly authenticated before being fractionalized on the Solana network as SPL-Token-2022 units. 
-                        Each token represents a cryptographically-secured economic interest in the property's throughput and appreciation.
+                        {property.description || `${property.name} is a verified, institutional-grade ${property.property_type || 'commercial'} asset within the ProofEstate protocol. It has been thoroughly authenticated before being fractionalized on the Solana network as SPL-Token-2022 units. Each token represents a cryptographically-secured economic interest in the property's throughput and appreciation.`}
                     </div>
                 </div>
 
@@ -348,5 +356,13 @@ export default function PropertyInvestPage({ params }: { params: Promise<{ id: s
       )}
 
     </div>
+  );
+}
+
+export default function PropertyInvestPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <WalletProviders>
+      <PropertyInvestPageContent params={params} />
+    </WalletProviders>
   );
 }

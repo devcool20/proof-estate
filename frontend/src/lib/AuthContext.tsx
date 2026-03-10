@@ -29,6 +29,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [regName, setRegName] = useState("");
     const [regLoading, setRegLoading] = useState(false);
 
+    const normalizeRole = (role?: string): "owner" | "investor" | "verifier" | "admin" => {
+        const normalized = (role || "").trim().toLowerCase();
+        if (normalized === "owner" || normalized === "investor" || normalized === "verifier" || normalized === "admin") {
+            return normalized;
+        }
+        return "investor";
+    };
+
     const fetchUser = async (clerkId: string) => {
         setLoading(true);
         console.log("🔍 AuthContext: Fetching user profile for:", clerkId);
@@ -36,7 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const profile = await getUserProfile(clerkId);
             console.log("🔍 AuthContext: Received profile:", profile);
             if (profile) {
-                setDbUser(profile);
+                const normalizedProfile: User = {
+                    ...profile,
+                    role: normalizeRole(profile.role),
+                };
+                setDbUser(normalizedProfile);
+                if (normalizedProfile.role === "owner" || normalizedProfile.role === "investor") {
+                    setRegRole(normalizedProfile.role);
+                }
                 setShowRegistration(false);
             } else {
                 console.log("🔍 AuthContext: user not found, showing registration");
@@ -63,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 role: regRole,
             });
             console.log("👤 AuthContext: Registration success:", newUser);
-            setDbUser(newUser);
+            setDbUser({ ...newUser, role: normalizeRole(newUser.role) });
             setShowRegistration(false);
         } catch (e) {
             console.error("👤 AuthContext: Registration failed", e);
@@ -107,8 +122,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [dbUser?.role, regRole, isLoaded, isSignedIn]);
 
+    const fallbackUser: User | null = isLoaded && isSignedIn && clerkUser && !loading
+        ? {
+            wallet: clerkUser.id,
+            name: clerkUser.fullName || undefined,
+            email: clerkUser.primaryEmailAddress?.emailAddress || undefined,
+            role: regRole,
+            created_at: new Date().toISOString(),
+        }
+        : null;
+
+    const effectiveUser = dbUser ?? fallbackUser;
+
     return (
-        <AuthContext.Provider value={{ user: dbUser, loading, refreshUser: async () => { if (clerkUser) await fetchUser(clerkUser.id); }, setUser: setDbUser }}>
+        <AuthContext.Provider value={{ user: effectiveUser, loading, refreshUser: async () => { if (clerkUser) await fetchUser(clerkUser.id); }, setUser: setDbUser }}>
             {children}
             
             {showRegistration && (
