@@ -57,6 +57,9 @@ export interface Property {
     parking_spaces?: number;
     construction_year?: number;
     last_renovation_year?: number;
+    latitude?: number;
+    longitude?: number;
+    images?: string[];
 }
 
 export interface SubmitPropertyPayload {

@@ -1,7 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { listMarketplace, getDocUrl, type Property } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+import { useTheme } from "@/lib/ThemeContext";
+
+const MapViewer = dynamic(() => import("@/components/MapViewer"), { ssr: false });
 
 function formatInr(paise?: number) {
   if (!paise) return "—";
@@ -11,10 +17,23 @@ function formatInr(paise?: number) {
   return `₹${lakh.toFixed(1)} L`;
 }
 
-export default function ExplorePage() {
+function ExploreContent() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  
+  // Search parameters
+  const [query, setQuery] = useState(searchParams.get("query") || "");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [showMapMobile, setShowMapMobile] = useState(false);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
+  useEffect(() => {
+    const q = searchParams.get("query");
+    if (q) setQuery(q);
+  }, [searchParams]);
 
   useEffect(() => {
     listMarketplace()
@@ -23,137 +42,214 @@ export default function ExplorePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filteredProperties = properties.filter((p) => {
+    const matchesQuery = p.name.toLowerCase().includes(query.toLowerCase()) || p.address.toLowerCase().includes(query.toLowerCase());
+    const matchesType = typeFilter === "all" || p.property_type?.toLowerCase() === typeFilter;
+    return matchesQuery && matchesType;
+  });
+
   return (
-    <div className="flex-grow flex flex-col antialiased text-slate-300 relative">
-      <main className="flex-grow px-6 py-12 md:py-16 relative">
-        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-[#00F0FF]/5 rounded-full blur-[150px] pointer-events-none"></div>
-        
-        <div className="max-w-[1280px] mx-auto flex flex-col gap-12 relative z-10">
-          
-          {/* Page Title */}
-          <div className="text-left space-y-4">
-             <h2 className="text-3xl md:text-5xl font-light text-white tracking-tight heading-display">Global Registry</h2>
-             <p className="text-slate-400 font-light text-base md:text-lg max-w-2xl">
-               Institutional-grade real estate assets, fractionalized and secured via the Solana SPL-Token-2022 protocol.
-             </p>
-          </div>
+    <div className="flex-grow flex flex-col md:flex-row antialiased max-w-[1920px] mx-auto w-full relative h-[calc(100vh-80px)] lg:h-[calc(100vh-73px)] overflow-hidden" style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}>
+      
+      {/* Left Sidebar - Listings */}
+      <div className={`w-full md:w-[360px] lg:w-[400px] h-full overflow-y-auto flex flex-col shrink-0 border-r ${isDark ? 'bg-[var(--bg-card)] border-white/5' : 'bg-white border-slate-200'}`}>
+         <div className={`p-4 pb-3 sticky top-0 backdrop-blur-md z-10 border-b shadow-sm ${isDark ? 'bg-[var(--bg-card)]/90 border-white/5' : 'bg-white/90 border-slate-100'}`}>
+            <h1 className="text-xl font-bold heading-display mb-1.5" style={{ color: 'var(--text)' }}>Find your dream apartment</h1>
+            
+            {/* Context Filters */}
+            <div className="flex gap-3 text-xs font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>
+              <button className="text-primary border-b-2 border-primary pb-0.5">Verified Properties</button>
+              <button className="hover:text-slate-800 pb-0.5">Tokenized Assets</button>
+            </div>
 
-          {/* Metrics Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricCard title="Protocol Listings" icon="domain" value={loading ? "—" : `${properties.length}`} color="text-primary" glow="shadow-[0_0_20px_rgba(var(--color-primary-rgb),0.1)]" />
-            <MetricCard 
-              title="Target Yield" 
-              icon="percent" 
-              value={loading ? "—" : properties.length > 0 
-                ? `${(properties.reduce((a, b) => a + (b.yield_percent || 0), 0) / properties.length).toFixed(1)}%` 
-                : "0%"} 
-              color="text-[#10B981]"
-              glow="shadow-[0_0_20px_rgba(16,185,129,0.1)]"
-            />
-            <MetricCard 
-              title="Registry TVL" 
-              icon="monitoring" 
-              value={loading ? "—" : formatInr(properties.reduce((a, b) => a + (b.asset_value_inr || 0), 0))} 
-              color="text-[#00F0FF]"
-              glow="shadow-[0_0_20px_rgba(0,240,255,0.1)]"
-            />
-            <MetricCard title="Oracle Integrity" icon="verified" value="v2.4" color="text-slate-200" glow="" />
-          </div>
+            {/* Search Input */}
+            <div className="relative mb-4 shadow-sm">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-slate-400 text-[18px]">search</span>
+              <input 
+                type="text" 
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by neighborhood, city..." 
+                className={`w-full h-9 rounded-lg pl-8 pr-3 outline-none border focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all font-medium text-xs ${isDark ? 'bg-white/5 border-white/10 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+              />
+            </div>
 
-          <div className="mt-4 border-t border-white/5 pt-12">
+            {/* Pill Filters */}
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+              <button 
+                onClick={() => setTypeFilter('all')}
+                className={`shrink-0 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all ${typeFilter === 'all' ? 'bg-primary text-white border-primary' : isDark ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              >
+                All
+              </button>
+              <button 
+                onClick={() => setTypeFilter('residential')}
+                className={`shrink-0 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all flex items-center gap-0.5 ${typeFilter === 'residential' ? 'bg-slate-900 text-white border-slate-900' : isDark ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              >
+                <span className="material-symbols-outlined text-[12px]">apartment</span>
+                Apartments
+              </button>
+              <button 
+                onClick={() => setTypeFilter('commercial')}
+                className={`shrink-0 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all flex items-center gap-0.5 ${typeFilter === 'commercial' ? 'bg-slate-900 text-white border-slate-900' : isDark ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              >
+                <span className="material-symbols-outlined text-[12px]">business</span>
+                Commercial
+              </button>
+              <button 
+                onClick={() => setTypeFilter('land')}
+                className={`shrink-0 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all flex items-center gap-0.5 ${typeFilter === 'land' ? 'bg-slate-900 text-white border-slate-900' : isDark ? 'bg-white/5 border-white/10 text-slate-400 hover:text-white' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              >
+                <span className="material-symbols-outlined text-[12px]">landscape</span>
+                Land
+              </button>
+            </div>
+         </div>
+
+         <div className="p-4 pt-2 flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-500 font-medium text-xs">{filteredProperties.length} results</span>
+              <div 
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-800 cursor-pointer md:hidden"
+                onClick={() => setShowMapMobile(!showMapMobile)}
+              >
+                {showMapMobile ? "Hide map" : "Show on map"}
+                <div className={`w-7 h-3.5 rounded-full relative transition-colors ${showMapMobile ? 'bg-primary' : 'bg-slate-300'}`}>
+                  <div className={`size-2.5 bg-white rounded-full absolute top-[2px] transition-all ${showMapMobile ? 'right-[2px]' : 'left-[2px]'}`}></div>
+                </div>
+              </div>
+            </div>
+
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="glass-panel rounded-3xl h-[400px] animate-pulse border-white/5" />
-                  ))}
-                </div>
-            ) : error ? (
-                <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center">
-                  <p className="text-red-300 text-sm">{error}</p>
-                </div>
-            ) : properties.length === 0 ? (
-                <div className="glass-panel rounded-3xl p-20 text-center border-white/10 group">
-                   <div className="size-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-8">
-                     <span className="material-symbols-outlined text-5xl text-slate-600">search_off</span>
+               <div className="flex flex-col gap-4">
+                 {[1, 2, 3].map((i) => (
+                   <div key={i} className={`h-auto w-full rounded-[16px] border block animate-pulse overflow-hidden ${isDark ? 'bg-[var(--bg-card)] border-white/5' : 'bg-white border-slate-200'}`}>
+                     <div className="h-40 w-full bg-slate-200/60" />
+                     <div className="p-3 flex flex-col gap-2">
+                        <div className="h-4 w-1/3 bg-slate-200/60 rounded" />
+                        <div className="h-3 w-1/2 bg-slate-200/60 rounded" />
+                        <div className="h-3 w-full bg-slate-200/60 rounded mt-1" />
+                     </div>
                    </div>
-                   <p className="text-xl font-light text-slate-400 heading-display">No active listings synchronized.</p>
+                 ))}
+               </div>
+            ) : error ? (
+                <div className="rounded-xl border border-red-500/20 bg-red-50 p-6 text-center shadow-sm">
+                  <p className="text-red-500 text-sm font-semibold">{error}</p>
+                </div>
+            ) : filteredProperties.length === 0 ? (
+                <div className={`rounded-[20px] p-8 text-center flex flex-col items-center justify-center animate-fade-up border shadow-sm mt-2 ${isDark ? 'bg-[var(--bg-card)] border-white/5' : 'bg-white border-slate-200'}`}>
+                   <div className="size-16 rounded-full bg-blue-50/50 border border-blue-100 flex items-center justify-center mx-auto mb-4 shadow-[inset_0_2px_10px_rgba(17,107,251,0.05)] text-primary">
+                     <span className="material-symbols-outlined text-[28px]">travel_explore</span>
+                   </div>
+                   <h3 className="text-lg font-bold heading-display mb-2" style={{ color: 'var(--text)' }}>No properties found</h3>
+                   <p className="text-xs font-medium max-w-xs mx-auto mb-5 leading-relaxed" style={{ color: 'var(--text-secondary)' }}>We couldn't find any verified assets matching your criteria. Try adjusting your search.</p>
+                   <button 
+                     onClick={() => { setQuery(''); setTypeFilter('all'); }} 
+                     className="px-5 py-2 bg-slate-900 text-white rounded-lg text-[10px] uppercase tracking-widest font-bold shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center gap-1.5"
+                   >
+                     <span className="material-symbols-outlined text-[14px]">filter_alt_off</span>
+                     Clear Filters
+                   </button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                   {properties.map(p => (
+                <div className="flex flex-col gap-4 pb-16">
+                   {filteredProperties.map((p, i) => (
                        <ListingCard 
                            key={p.id}
+                           index={i}
                            id={p.id}
-                           image={getDocUrl(p.image_url || p.document_url)}
-                           type={p.property_type?.toUpperCase() || "PROPERTY"}
+                           isDark={isDark}
+                           image={p.images && p.images.length > 0 ? p.images[0] : `https://images.unsplash.com/photo-${[
+                            '1600596542815-ffad4c1539a9', // mansion
+                            '1512917774080-9991f1c4c750', // home interior
+                            '1600607687920-4e2a868f0bbb', // modern exterior
+                            '1512917774080-9991f1c4c750', // kitchen
+                            '1600607687920-4e2a868f0bbb', // modern house
+                            '1600596542815-ffad4c1539a9'  // luxury
+                          ][i % 6]}?q=80&w=600&auto=format&fit=crop`}
+                           type={p.property_type?.replace("_", " ") || "PROPERTY"}
+                           status={p.status}
                            name={p.name}
-                           location={`${p.city || "Registry Area"}`}
-                           yieldRate={p.yield_percent ? `${p.yield_percent}%` : "—"}
-                           price={p.token_price_usd ? `$${p.token_price_usd}` : "—"}
+                           location={`${p.city || "San Pedro"}`}
+                           yieldRate={p.yield_percent ? `${p.yield_percent}%` : "N/A"}
+                           price={p.token_price_usd ? `$${p.token_price_usd.toLocaleString()}` : p.asset_value_inr ? `₹${(p.asset_value_inr / 100000).toFixed(2)} L` : "N/A"}
+                           areaSqft={p.area_sqft}
                          />
                    ))}
                 </div>
             )}
-          </div>
-        </div>
-      </main>
+         </div>
+      </div>
+
+      {/* Right Content - Map */}
+      <div className={`${showMapMobile ? "block absolute inset-0 z-50 pt-[73px]" : "hidden"} md:block flex-grow h-full bg-blue-50 relative md:z-0 shadow-inner md:pt-0`}>
+         {showMapMobile && (
+            <button 
+              onClick={() => setShowMapMobile(false)} 
+              className={`absolute top-[90px] left-4 z-[9999] md:hidden px-4 py-2 rounded-xl shadow-lg font-bold border ${isDark ? 'bg-[var(--bg-card)] text-white border-white/10' : 'bg-white text-slate-900 border-slate-200'}`}
+            >
+              ← Back to List
+            </button>
+         )}
+         <MapViewer properties={filteredProperties} />
+      </div>
+
     </div>
   );
 }
 
-function MetricCard({ title, icon, value, color, glow }: { title: string, icon: string, value: string, color: string, glow: string }) {
- return (
-   <div className={`rounded-2xl border border-white/10 bg-[#0d1117] p-6 ${glow}`}>
-     <div className="flex justify-between items-start mb-6">
-       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{title}</p>
-       <span className={`material-symbols-outlined text-[20px] ${color} opacity-60`}>{icon}</span>
-     </div>
-     <p className="text-3xl md:text-4xl font-light text-white tracking-tight heading-display mb-1">{value}</p>
-     <p className="text-[11px] text-slate-500">Updated from marketplace feed</p>
-   </div>
- );
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-slate-500 font-medium h-screen flex items-center justify-center">Loading marketplace...</div>}>
+      <ExploreContent />
+    </Suspense>
+  );
 }
 
-function ListingCard({ id, image, type, name, location, yieldRate, price }: { id: string, image: string, type: string, name: string, location: string, yieldRate: string, price: string }) {
+function ListingCard({ id, image, type, status, name, location, yieldRate, price, areaSqft, index = 0, isDark = false }: { id: string, image: string, type: string, status: string, name: string, location: string, yieldRate: string, price: string, areaSqft?: number, index?: number, isDark?: boolean }) {
  return (
-   <Link href={`/explore/${id}`} className="group block overflow-hidden rounded-2xl border border-white/10 bg-[#0d1117] transition-colors hover:border-white/20">
-     <div className="relative h-64 w-full overflow-hidden">
-       <div className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105" style={{ backgroundImage: `url('${image}')` }}></div>
-       <div className="absolute inset-0 bg-gradient-to-t from-[#060606] via-transparent to-transparent opacity-80" />
+   <Link href={`/explore/${id}`} className={`group block overflow-hidden rounded-[16px] border transition-all duration-300 hover:-translate-y-0.5 animate-fade-up ${isDark ? 'bg-[var(--bg-card)] border-white/5 hover:border-white/15 hover:shadow-[0_8px_30px_rgba(0,0,0,0.3)]' : 'bg-white border-slate-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-slate-300'}`} style={{ animationDelay: `${index * 80}ms` }}>
+     <div className="relative h-40 w-full overflow-hidden bg-slate-100">
+       <img 
+         src={image} 
+         alt={name} 
+         onError={(e) => { e.currentTarget.src = "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=600"; }}
+         className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+       />
+       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-80" />
        
-       <div className="absolute top-4 left-4 flex gap-2">
-         <span className="px-3 py-1 bg-black/50 backdrop-blur-md border border-white/10 text-white text-[9px] font-bold uppercase tracking-widest rounded-full">{type}</span>
-         <span className="px-3 py-1 bg-[#10B981]/80 backdrop-blur-md text-white text-[9px] font-bold uppercase tracking-widest rounded-full flex items-center gap-1.5">
-           <span className="material-symbols-outlined text-[14px]">verified</span> VERIFIED
-         </span>
+       <div className="absolute top-2 left-2 flex gap-1.5">
+         {status === 'tokenized' ? (
+           <span className="px-2 py-0.5 bg-[#10B981] shadow-sm text-white text-[9px] font-bold uppercase tracking-widest rounded-md">For Sale</span>
+         ) : (
+           <span className="px-2 py-0.5 bg-primary shadow-sm text-white text-[9px] font-bold uppercase tracking-widest rounded-md">For Rent</span>
+         )}
+       </div>
+       <div className="absolute top-2 right-2">
+         <button className="size-6 rounded-full bg-white/50 backdrop-blur border border-white flex items-center justify-center text-slate-800 hover:bg-white transition-colors shadow-sm">
+           <span className="material-symbols-outlined text-[14px]">favorite</span>
+         </button>
        </div>
      </div>
      
-     <div className="p-6 flex flex-col gap-5 relative z-10">
-       <div className="space-y-1">
-          <h3 className="text-xl md:text-2xl font-light text-white leading-tight heading-display">{name}</h3>
-          <p className="text-slate-500 text-sm font-light flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[16px]">location_on</span>
-            {location}
+     <div className="p-3 flex flex-col gap-2">
+       <div>
+          <h3 className="text-sm font-bold leading-tight heading-display mb-0.5 truncate" style={{ color: 'var(--text)' }}>{price}</h3>
+          <p className="text-[11px] font-medium flex items-center gap-1 truncate" style={{ color: 'var(--text-secondary)' }}>
+            <span className="material-symbols-outlined text-[12px]">location_on</span>
+            {location} - {name}
           </p>
        </div>
 
-       <div className="grid grid-cols-2 gap-8 border-y border-white/5 py-6">
-         <div className="space-y-1">
-           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Est. Yield</p>
-           <p className="text-lg md:text-xl font-light text-[#10B981]">{yieldRate}</p>
-         </div>
-         <div className="space-y-1 text-right">
-           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Entry Price</p>
-           <p className="text-lg md:text-xl font-light text-white">{price}</p>
-         </div>
-       </div>
-
-       <div className="mt-1">
-          <button className="w-full h-11 rounded-xl border border-white/20 bg-white/5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:bg-white/10 flex items-center justify-center gap-2">
-             View Details
-             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-          </button>
+       <div className={`flex items-center gap-2 text-[11px] font-semibold border-t pt-2 ${isDark ? 'border-white/5 text-slate-400' : 'border-slate-100 text-slate-600'}`}>
+         <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[12px]">trending_up</span> {yieldRate}</span>
+         {areaSqft && (
+           <>
+             <span className="size-0.5 rounded-full bg-slate-300"></span>
+             <span className="flex items-center gap-0.5"><span className="material-symbols-outlined text-[12px]">square_foot</span> {areaSqft} sqft</span>
+           </>
+         )}
        </div>
      </div>
    </Link>

@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Plus_Jakarta_Sans } from "next/font/google";
+import { Alexandria, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "./providers";
 import { Navbar } from "../components/Navbar";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 
-const playfair = Playfair_Display({
- variable: "--font-playfair",
+const alexandria = Alexandria({
+ variable: "--font-display",
  subsets: ["latin"],
- weight: ["400", "600", "700"],
+ weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -42,9 +42,9 @@ export default function RootLayout({
  rel="stylesheet"
  />
  </head>
- <body className={`${playfair.variable} ${plusJakarta.variable} font-sans antialiased text-slate-200 bg-[#060606] min-h-screen flex flex-col selection:bg-primary selection:text-black`}>
- <div className="fixed inset-0 z-[-1] bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 mix-blend-screen pointer-events-none"></div>
- <div className="fixed inset-0 z-[-2] bg-gradient-to-br from-[#0a0a0a] via-[#060606] to-[#040d12] pointer-events-none"></div>
+ <body className={`${alexandria.variable} ${plusJakarta.variable} font-sans antialiased min-h-screen flex flex-col selection:bg-primary selection:text-white`} style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}>
+ <div className="fixed inset-0 z-[-1] opacity-10 pointer-events-none" style={{ backgroundColor: 'var(--bg)' }}></div>
+ <div className="fixed inset-0 z-[-2] pointer-events-none" style={{ backgroundColor: 'var(--bg)' }}></div>
  <AppProviders>
  <Navbar />
  {children}
