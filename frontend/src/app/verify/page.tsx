@@ -30,16 +30,10 @@ interface FormData {
   last_renovation_year: string;
 }
 
-const STEPS = ["Property Details", "Document Hash", "Sign & Submit"];
+const STEPS = ["Asset Initialization", "Cryptographic Proof", "Authorization"];
 
 export default function VerifyPage() {
   const { user } = useAuth();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-  const card = isDark ? 'bg-[var(--bg-card)] border-white/5' : 'bg-white border-slate-200';
-  const inputCls = isDark
-    ? 'border-white/10 bg-[var(--bg-input)] text-white placeholder:text-slate-500 focus:border-primary'
-    : 'border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-primary';
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>({
     name: "",
@@ -76,7 +70,6 @@ export default function VerifyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<{ property_id: string; metadata_hash: string; message: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -86,7 +79,7 @@ export default function VerifyPage() {
     const file = e.target.files?.[0];
     if (file) {
       setFileSelected(file.name);
-      setForm((prev) => ({ ...prev, document_url: `https://docs.proofestate.io/${file.name}` }));
+      setForm((prev) => ({ ...prev, document_url: `https://docs.ProofEstate.io/${file.name}` }));
     }
   };
 
@@ -128,44 +121,51 @@ export default function VerifyPage() {
     }
   };
 
+  const inputCls = "bg-transparent border-b border-white/20 text-white text-lg font-light pb-2 focus:outline-none focus:border-[#d4af37] transition-all placeholder:text-white/20";
+  const labelCls = "text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-3 group-focus-within:text-[#d4af37] transition-colors";
+
   // Success screen
   if (step === 3 && result) {
     return (
-      <div className="flex-grow flex flex-col items-center justify-center p-6 text-center relative min-h-screen" style={{ backgroundColor: 'var(--bg)' }}>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#10B981]/10 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className={`rounded-[20px] shadow-xl p-6 md:p-8 max-w-md w-full space-y-5 relative z-10 border ${card}`}>
-          <div className="size-14 md:size-16 bg-[#10B981]/10 rounded-full flex items-center justify-center mx-auto border border-[#10B981]/30 shadow-sm animate-bounce-slow">
-            <span className="material-symbols-outlined text-[28px] md:text-[32px] text-[#10B981]">verified</span>
+      <div className="flex-grow flex flex-col items-center justify-center p-6 text-center relative min-h-screen bg-[#0f1419]">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#d4af37]/5 rounded-full blur-[150px] pointer-events-none"></div>
+        
+        <div className="bg-[#171c21] border border-white/5 rounded-[2rem] shadow-[0_20px_40px_rgba(0,0,0,0.5)] p-12 max-w-xl w-full relative z-10 animate-fade-in">
+          <div className="size-16 bg-[#d4af37]/10 rounded-full flex items-center justify-center mx-auto border border-[#d4af37]/30 shadow-sm animate-pulse mb-8">
+            <span className="material-symbols-outlined text-[32px] text-[#d4af37]">verified</span>
           </div>
-          <div>
-            <h2 className="text-xl font-bold heading-display mb-2" style={{ color: 'var(--text)' }}>Protocol Initiated</h2>
-            <p className="font-medium text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Your cryptographic proof has been submitted to the decentralized oracle for registry verification.
+          <div className="mb-8">
+            <h2 className="text-3xl font-medium heading-display mb-2 text-white">Registry Initiated</h2>
+            <p className="font-medium text-sm text-white/50 leading-relaxed">
+              Your asset parameters have been cryptographically sealed and submitted to the decentralized oracle network.
             </p>
           </div>
-          <div className={`rounded-xl p-4 text-left space-y-3 font-mono text-[11px] overflow-hidden shadow-inner border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-            <div className={`flex justify-between items-center pb-2.5 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <span className="font-bold uppercase tracking-widest text-[9px]" style={{ color: 'var(--text-secondary)' }}>Property ID</span>
-              <span className="font-bold max-w-[180px] truncate" style={{ color: 'var(--text)' }}>{result.property_id}</span>
+          
+          <div className="rounded-2xl bg-[#0a0e14] border border-white/5 p-6 text-left space-y-4 font-mono text-[10px] mb-8">
+            <div className="flex justify-between items-center pb-4 border-b border-white/5">
+              <span className="font-bold uppercase tracking-widest text-[#d4af37]">Protocol ID</span>
+              <span className="font-bold max-w-[180px] truncate text-white">{result.property_id}</span>
             </div>
-            <div className={`flex justify-between items-center pb-2.5 border-b ${isDark ? 'border-white/10' : 'border-slate-200'}`}>
-              <span className="font-bold uppercase tracking-widest text-[9px]" style={{ color: 'var(--text-secondary)' }}>Proof Hash</span>
-              <span className="text-primary font-bold max-w-[180px] truncate">{result.metadata_hash}</span>
+            <div className="flex justify-between items-center pb-4 border-b border-white/5">
+              <span className="font-bold uppercase tracking-widest text-[#d4af37]">ZK Hash</span>
+              <span className="text-white/80 font-bold max-w-[180px] truncate">{result.metadata_hash}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="font-bold uppercase tracking-widest text-[9px]" style={{ color: 'var(--text-secondary)' }}>Oracle Status</span>
-              <span className="text-[#F59E0B] font-bold flex items-center gap-1.5 text-[11px]">
-                <span className="size-1.5 rounded-full bg-[#F59E0B] animate-pulse"></span>
-                AWAITING VERIFICATION
+              <span className="font-bold uppercase tracking-widest text-[#d4af37]">Oracle State</span>
+              <span className="text-[#f2ca50] font-bold flex items-center gap-2">
+                <span className="size-2 rounded-full bg-[#f2ca50] animate-pulse shadow-[0_0_10px_#f2ca50]"></span>
+                AWAITING VALIDATION
               </span>
             </div>
           </div>
-          <p className="text-[10px] text-slate-500 italic font-medium">{result.message}</p>
+          
+          <p className="text-[10px] text-white/30 italic font-medium mb-8 flex justify-center">{result.message}</p>
+          
           <Link
             href="/properties"
-            className="block w-full py-2.5 bg-primary text-white rounded-lg font-bold uppercase tracking-widest text-[11px] hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] transition-all shadow-md hover:shadow-lg"
+            className="w-full btn-primary py-4 text-[10px] font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-3 transition-transform hover:scale-[1.02]"
           >
-            Go to Asset Registry
+            Access The Vault <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
           </Link>
         </div>
       </div>
@@ -173,177 +173,117 @@ export default function VerifyPage() {
   }
 
   return (
-    <div className="flex-grow flex flex-col antialiased min-h-screen relative" style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}>
-      <main className="flex-grow px-6 py-8 md:py-14 relative">
-        <div className="absolute top-0 right-1/4 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="max-w-2xl mx-auto space-y-8 relative z-10">
+    <div className="flex-grow flex flex-col antialiased bg-[#0f1419] text-[#dee3ea] min-h-screen relative">
+      <main className="flex-grow px-6 md:px-12 py-16 lg:py-24 relative z-10 w-full max-w-[1920px] mx-auto flex justify-center">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#d4af37]/5 rounded-full blur-[150px] pointer-events-none"></div>
+        
+        <div className="max-w-3xl w-full relative z-10">
           
           {/* Header */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1.5 text-xs mb-4 font-bold uppercase tracking-widest" style={{ color: 'var(--text-secondary)' }}>
-              <Link href="/properties" className="hover:text-primary transition-colors">Asset Registry</Link>
-              <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-              <span style={{ color: 'var(--text)' }}>Initialize Tokenization</span>
-            </div>
-            <h2 className="text-xl md:text-3xl font-bold tracking-tight heading-display mb-2" style={{ color: 'var(--text)' }}>Digitize Asset</h2>
-            <p className="font-medium max-w-lg mx-auto text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Submit legal property deeds. We compute a Zero-Knowledge hash to be verified against the official government registry.
-            </p>
+          <div className="text-center mb-16">
+             <span className="text-[#d4af37] text-[10px] font-bold tracking-[0.2em] uppercase mb-4 block">
+               Protocol Origination (Bharat Edition)
+             </span>
+             <h1 className="text-4xl md:text-5xl font-medium heading-display text-white mb-6">Asset Tokenization</h1>
+             <p className="text-white/50 text-basis max-w-lg mx-auto leading-relaxed">
+               Submit premium Indian real estate assets to the ProofEstate registry. All submissions undergo cryptographically-secured validation and SEBI-compliant verification steps.
+             </p>
           </div>
 
           {/* Stepper */}
-          <div className="flex flex-col md:flex-row items-center justify-between relative px-2 mb-6 gap-6 md:gap-0">
-            <div className="hidden md:block absolute left-6 right-6 top-1/2 -translate-y-1/2 h-0.5 rounded-full -z-10" style={{ backgroundColor: 'var(--border)' }}></div>
-            <div className="md:hidden absolute left-1/2 top-4 bottom-4 w-0.5 rounded-full -z-10 -translate-x-1/2" style={{ backgroundColor: 'var(--border)' }}></div>
+          <div className="flex flex-col md:flex-row justify-between mb-16 relative gap-8 md:gap-0">
             {STEPS.map((s, i) => (
-              <div key={s} className="flex md:flex-col flex-row items-center gap-3 px-3 md:px-2 relative" style={{ backgroundColor: 'var(--bg)' }}>
-                <div className={`size-9 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-500 shrink-0 border-[3px] ${
+              <div key={s} className={`flex flex-col items-center gap-4 relative z-10 transition-colors duration-500 ${i <= step ? 'text-[#d4af37]' : 'text-white/20'}`}>
+                <div className={`size-12 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-500 border ${
                   i < step
-                    ? 'bg-primary text-white shadow-md shadow-primary/20'
+                    ? 'bg-[#d4af37]/10 border-[#d4af37]/30 text-[#d4af37]'
                     : i === step
-                    ? `text-primary border-primary shadow-lg ${isDark ? 'bg-[var(--bg-card)]' : 'bg-white'}`
-                    : `text-slate-400 border-slate-200 shadow-sm ${isDark ? 'bg-[var(--bg-card)]' : 'bg-white'}`
-                }`} style={i >= step ? { borderColor: i === step ? undefined : 'var(--border)' } : {}}>
-                  {i < step ? <span className="material-symbols-outlined text-[16px]">check</span> : i + 1}
+                    ? 'bg-[#d4af37] border-[#d4af37] text-black shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                    : 'bg-[#0a0e14] border-white/10 text-white/20'
+                }`}>
+                  {i < step ? <span className="material-symbols-outlined text-[18px]">check</span> : i + 1}
                 </div>
-                <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest md:absolute md:-bottom-6 md:translate-y-2 whitespace-nowrap ${i === step ? "text-primary" : "text-slate-500"}`}>{s}</span>
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] whitespace-nowrap">{s}</span>
               </div>
             ))}
           </div>
 
-          <div className="mt-10"></div>
-
           {/* Form Card */}
-          <div className={`rounded-[20px] shadow-sm border p-5 md:p-7 relative overflow-hidden ${card}`}>
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary-light"></div>
-
+          <section className="bg-[#171c21] rounded-[2rem] p-8 md:p-12 border border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+            
             {/* Step 0: Property Details */}
             {step === 0 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <h3 className="text-lg font-bold heading-display mb-5" style={{ color: 'var(--text)' }}>Asset Specifications</h3>
-                <div className="space-y-4">
+              <div className="animate-fade-in space-y-10">
+                <h3 className="text-[9px] font-bold text-[#d4af37] uppercase tracking-[0.2em] flex items-center gap-3 pb-4 border-b border-white/5">
+                  <span className="material-symbols-outlined text-[16px]">domain</span>
+                  Physical Asset Specifications
+                </h3>
+                
+                <div className="space-y-8">
                   <label className="block group">
-                    <span className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 group-focus-within:text-primary transition-colors" style={{ color: 'var(--text-secondary)' }}>Property Title / Name</span>
-                    <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. The Obsidian Tower"
-                      className={`w-full h-10 px-3 border rounded-lg focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium text-sm shadow-sm ${inputCls}`} />
+                    <span className={labelCls}>Asset Designation</span>
+                    <input name="name" value={form.name} onChange={handleChange} placeholder="The Obsidian Pavilion" className={`w-full ${inputCls}`} />
                   </label>
+                  
                   <label className="block group">
-                    <span className="text-[10px] font-bold uppercase tracking-widest block mb-1.5 group-focus-within:text-primary transition-colors" style={{ color: 'var(--text-secondary)' }}>Physical Address</span>
-                    <input name="address" value={form.address} onChange={handleChange} placeholder="Plot 42, Financial District"
-                      className={`w-full h-10 px-3 border rounded-lg focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium text-sm shadow-sm ${inputCls}`} />
+                    <span className={labelCls}>Geographic Coordination</span>
+                    <input name="address" value={form.address} onChange={handleChange} placeholder="Sector 4, High Ridge" className={`w-full ${inputCls}`} />
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <label className="block group">
-                      <span className="text-[11px] font-bold uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors" style={{ color: 'var(--text-secondary)' }}>City / Jurisdiction</span>
-                      <input name="city" value={form.city} onChange={handleChange} placeholder="Neo-Mumbai"
-                        className={`w-full h-10 px-3 border rounded-lg focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium text-sm shadow-sm ${inputCls}`} />
+                      <span className={labelCls}>Jurisdiction (City)</span>
+                      <input name="city" value={form.city} onChange={handleChange} placeholder="Mumbai / Delhi / Dubai" className={`w-full ${inputCls}`} />
                     </label>
                     <label className="block group">
-                      <span className="text-[11px] font-bold uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors" style={{ color: 'var(--text-secondary)' }}>Asset Class</span>
-                      <select name="property_type" value={form.property_type} onChange={handleChange}
-                        className={`w-full h-10 px-3 border rounded-lg focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium text-sm shadow-sm appearance-none ${inputCls}`}>
-                        <option value="commercial">Commercial Space</option>
-                        <option value="residential">Residential Unit</option>
-                        <option value="land">Raw Land / Plot</option>
-                        <option value="warehouse">Industrial / Warehouse</option>
+                      <span className={labelCls}>Asset Class</span>
+                      <select name="property_type" value={form.property_type} onChange={handleChange} className={`w-full appearance-none ${inputCls} bg-[#171c21]`}>
+                        <option value="commercial">Commercial Estate</option>
+                        <option value="residential">Residential Reserve</option>
+                        <option value="land">Undeveloped Territory</option>
+                        <option value="warehouse">Industrial Hub</option>
                       </select>
                     </label>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <label className="block group">
-                      <span className="text-[11px] font-bold uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors" style={{ color: 'var(--text-secondary)' }}>Total Area (SQ.FT)</span>
-                      <input name="area_sqft" value={form.area_sqft} onChange={handleChange} placeholder="5000" type="number"
-                        className={`w-full h-10 px-3 border rounded-lg focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium text-sm shadow-sm ${inputCls}`} />
+                      <span className={labelCls}>Dimensional Volume (SQ.FT)</span>
+                      <input name="area_sqft" value={form.area_sqft} onChange={handleChange} placeholder="12400" type="number" className={`w-full ${inputCls}`} />
                     </label>
                     <label className="block group">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-2 group-focus-within:text-primary transition-colors">Market Valuation (INR)</span>
+                      <span className={labelCls}>Valuation Estimate (INR Crores)</span>
                       <div className="relative">
-                        <span className="absolute left-3 font-bold top-1/2 -translate-y-1/2 text-sm" style={{ color: 'var(--text-secondary)' }}>₹</span>
-                        <input name="asset_value_inr" value={form.asset_value_inr} onChange={handleChange} placeholder="500,000,000"
-                          className={`w-full h-10 pl-7 pr-3 border rounded-lg focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium text-sm shadow-sm ${inputCls}`} />
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 text-white/20 text-lg">₹</span>
+                        <input name="asset_value_inr" value={form.asset_value_inr} onChange={handleChange} placeholder="8.40" className={`w-full pl-6 ${inputCls}`} />
                       </div>
                     </label>
                   </div>
 
                   <label className="block group">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5 group-focus-within:text-primary transition-colors">Cover Image (URL or Upload)</span>
+                    <span className={labelCls}>Primary Visual Representation</span>
                     <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" id="image-upload" />
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <label htmlFor="image-upload" className={`h-10 px-4 border rounded-lg cursor-pointer flex items-center justify-center font-bold text-xs whitespace-nowrap shrink-0 transition-colors shadow-sm ${isDark ? 'border-white/10 bg-white/5 hover:bg-white/10 text-slate-300' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}>
-                         <span className="material-symbols-outlined mr-1.5 text-[16px]">image</span> {imageFileSelected ? "Image Selected" : "Select Image"}
+                    <div className="flex flex-col sm:flex-row gap-4 mt-2">
+                      <label htmlFor="image-upload" className="h-[46px] px-6 border border-white/20 hover:border-[#d4af37] rounded-full cursor-pointer flex items-center justify-center font-bold text-[9px] uppercase tracking-[0.2em] whitespace-nowrap shrink-0 transition-colors text-white/70 hover:text-white">
+                         <span className="material-symbols-outlined mr-2 text-[14px]">image</span> {imageFileSelected ? "Acquired" : "Select File"}
                       </label>
-                      <input name="image_url" value={form.image_url} onChange={handleChange} placeholder="e.g. https://images.unsplash.com/..."
-                        className={`w-full h-10 px-3 border rounded-lg focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium text-xs shadow-sm ${inputCls}`} />
+                      <input name="image_url" value={form.image_url} onChange={handleChange} placeholder="Or provide secure URI" className={`w-full ${inputCls}`} />
                     </div>
                   </label>
 
-                  <label className="block group opacity-70">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1.5">Connected Principal UID (Clerk)</span>
-                    <input name="owner_wallet" value={form.owner_wallet} readOnly placeholder="Not connected"
-                      className={`w-full h-10 px-3 border rounded-lg cursor-not-allowed outline-none font-mono text-xs shadow-inner ${isDark ? 'bg-white/5 border-white/10 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`} />
+                  <label className="block group">
+                    <span className={labelCls}>Architectural Context</span>
+                    <textarea name="description" value={form.description} onChange={handleChange} placeholder="Outline the historical and architectural significance of the asset..." rows={3} className={`w-full resize-none ${inputCls}`} />
                   </label>
-                  {/* Description */}
-                  <label className="block">
-                    <span className="text-[11px] font-bold uppercase tracking-widest mb-3 block" style={{ color: 'var(--text-secondary)' }}>Property Description</span>
-                    <textarea name="description" value={form.description} onChange={handleChange} placeholder="Describe the property, its features, and investment potential..."
-                      rows={4}
-                      className={`w-full px-5 py-4 border rounded-xl focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium resize-none shadow-sm ${inputCls}`} />
-                  </label>
-
-                  {/* Building Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <label className="block">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Total Floors</span>
-                      <input name="total_floors" value={form.total_floors} onChange={handleChange} placeholder="15" type="number"
-                        className="w-full h-10 px-3 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary/50  outline-none transition-all text-slate-900 placeholder:text-slate-400 font-medium text-sm shadow-sm" />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Parking Spaces</span>
-                      <input name="parking_spaces" value={form.parking_spaces} onChange={handleChange} placeholder="50" type="number"
-                        className="w-full h-10 px-3 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary/50  outline-none transition-all text-slate-900 placeholder:text-slate-400 font-medium text-sm shadow-sm" />
-                    </label>
-                    <label className="block">
-                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3 block">Construction Year</span>
-                      <input name="construction_year" value={form.construction_year} onChange={handleChange} placeholder="2020" type="number"
-                        className="w-full h-10 px-3 border border-slate-200 rounded-lg bg-slate-50 focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary/50  outline-none transition-all text-slate-900 placeholder:text-slate-400 font-medium text-sm shadow-sm" />
-                    </label>
-                  </div>
-
-                  {/* Market Analysis */}
-                  <label className="block">
-                    <span className="text-[11px] font-bold uppercase tracking-widest mb-3 block" style={{ color: 'var(--text-secondary)' }}>Market Analysis</span>
-                    <textarea name="market_analysis" value={form.market_analysis} onChange={handleChange} placeholder="Current market conditions, comparable properties, growth projections..."
-                      rows={3}
-                      className={`w-full px-5 py-4 border rounded-xl focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium resize-none shadow-sm ${inputCls}`} />
-                  </label>
-
-                  {/* Legal Status */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <label className="block">
-                      <span className="text-[11px] font-bold uppercase tracking-widest mb-3 block" style={{ color: 'var(--text-secondary)' }}>Legal Status</span>
-                      <select name="legal_status" value={form.legal_status} onChange={handleChange}
-                        className={`w-full h-10 px-3 border rounded-lg focus:ring-1 focus:ring-primary/50 outline-none transition-all font-medium text-sm shadow-sm ${inputCls}`}>
-                        <option value="clear">Clear Title</option>
-                        <option value="pending">Pending Clearance</option>
-                        <option value="disputed">Under Dispute</option>
-                        <option value="encumbered">Encumbered</option>
-                      </select>
-                    </label>
-                    <label className="flex items-center gap-3 pt-8 cursor-pointer">
-                      <input type="checkbox" name="environmental_clearance" checked={form.environmental_clearance} 
-                        onChange={(e) => setForm(prev => ({ ...prev, environmental_clearance: e.target.checked }))}
-                        className="w-6 h-6 rounded border-slate-300 bg-white text-primary focus:ring-primary/50 shadow-sm cursor-pointer" />
-                      <span className="text-slate-800 font-bold">Environmental Clearance Obtained</span>
-                    </label>
-                  </div>
                 </div>
-                <div className={`mt-6 pt-5 flex justify-end border-t ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+                
+                <div className="pt-8 flex justify-end border-t border-white/5">
                   <button
                     onClick={() => setStep(1)}
                     disabled={!form.name || !form.address || !form.city}
-                    className="w-full sm:w-auto px-6 py-2.5 bg-primary disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none text-white font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all hover:bg-primary-dark shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                    className="btn-primary py-4 px-12 text-[10px] uppercase font-bold tracking-[0.2em] flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:grayscale"
                   >
-                    Proceed Next
+                    Proceed to Cryptography <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
                   </button>
                 </div>
               </div>
@@ -351,137 +291,127 @@ export default function VerifyPage() {
 
             {/* Step 1: Document Upload */}
             {step === 1 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <h3 className="text-lg font-bold heading-display mb-1.5" style={{ color: 'var(--text)' }}>Document Cryptography</h3>
-                <p className="font-medium mb-5 text-sm" style={{ color: 'var(--text-secondary)' }}>Upload the root title deed. We compute a Zero-Knowledge hash to embed in the smart contract.</p>
+              <div className="animate-fade-in space-y-10">
+                <h3 className="text-[9px] font-bold text-[#d4af37] uppercase tracking-[0.2em] flex items-center gap-3 pb-4 border-b border-white/5">
+                  <span className="material-symbols-outlined text-[16px]">lock</span>
+                  Document Cryptography
+                </h3>
                 
-                <div className={`border-2 border-dashed rounded-[16px] p-5 md:p-8 flex flex-col items-center gap-4 hover:border-primary/50 transition-colors cursor-pointer group shadow-sm ${isDark ? 'border-white/10 bg-white/5 hover:bg-primary/5' : 'border-slate-200 bg-slate-50 hover:bg-blue-50/50'}`}>
-                  <div className={`size-12 md:size-14 rounded-full border flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/10 group-hover:border-primary/30 transition-all shadow-sm ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}>
-                    <span className="material-symbols-outlined text-[24px] md:text-[28px] text-slate-400 group-hover:text-primary transition-colors">enhanced_encryption</span>
+                <p className="text-white/50 text-sm leading-relaxed">
+                  Provide the root ownership deed, 7/12 extract, or Sale Deed. We compute a Zero-Knowledge hash to embed immutably onto the Solana network, ensuring title verification without public data exposure.
+                </p>
+                
+                <div className="border border-dashed border-white/20 hover:border-[#d4af37] rounded-[2rem] p-12 flex flex-col items-center gap-6 transition-colors cursor-pointer group bg-[#0a0e14]">
+                  <div className="size-16 rounded-full border border-white/10 group-hover:border-[#d4af37]/30 flex items-center justify-center group-hover:bg-[#d4af37]/5 transition-all shadow-[inset_0_0_15px_rgba(255,255,255,0.02)]">
+                    <span className="material-symbols-outlined text-[32px] text-white/30 group-hover:text-[#d4af37] transition-colors font-light">enhanced_encryption</span>
                   </div>
                   <div className="text-center">
-                    <p className="font-bold text-sm" style={{ color: 'var(--text)' }}>Select encrypted file</p>
-                    <p className="text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>Accepted formats: PDF or High-Res Image (Max 10MB)</p>
+                    <p className="font-bold text-white text-lg heading-display mb-1">Select Encrypted Payload</p>
+                    <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/30 mt-2">PDF / TIFF / RAW (Max 20MB)</p>
                   </div>
                   <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileChange} className="hidden" id="doc-upload" />
-                  <label htmlFor="doc-upload"
-                    className={`w-full sm:w-auto px-6 py-2.5 border shadow-sm rounded-lg text-[10px] md:text-[11px] font-bold uppercase tracking-widest cursor-pointer transition-all text-center ${isDark ? 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'}`}>
-                    Browse Local Storage
+                  <label htmlFor="doc-upload" className="px-8 py-3 mt-4 border border-white/20 hover:border-[#d4af37] text-white/60 hover:text-white rounded-full text-[9px] font-bold uppercase tracking-[0.2em] cursor-pointer transition-colors">
+                    Access Local Files
                   </label>
                 </div>
 
                 {fileSelected && (
-                  <div className="mt-4 flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl p-4 shadow-sm">
-                    <span className="material-symbols-outlined text-[#10B981] text-[24px]">lock_closed</span>
+                  <div className="flex items-center gap-4 bg-[#d4af37]/5 border border-[#d4af37]/20 rounded-[1.5rem] p-6">
+                    <span className="material-symbols-outlined text-[#d4af37] text-[24px]">lock_closed</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-slate-900 truncate">{fileSelected}</p>
-                      <p className="text-xs text-[#10B981] font-bold font-mono mt-0.5">Hash SHA-256 awaiting execution</p>
+                      <p className="text-sm font-bold text-white truncate">{fileSelected}</p>
+                      <p className="text-[10px] text-[#d4af37] font-bold font-mono mt-1 tracking-widest uppercase">SHA-256 computation pending</p>
                     </div>
-                    <span className="material-symbols-outlined text-[#10B981] text-[24px]">check_circle</span>
                   </div>
                 )}
 
-                <div className="mt-5 bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs flex gap-3 shadow-sm">
-                  <span className="material-symbols-outlined shrink-0 text-primary mt-0.5 text-[20px]">info</span>
-                  <div>
-                    <p className="font-bold text-primary uppercase tracking-widest text-[10px] mb-1">Immutable Privacy Protocol</p>
-                    <p className="font-medium text-slate-600 leading-relaxed text-xs">
-                      Your document's content is never exposed to public ledgers. A deterministic cryptographic sequence representing the file is cross-referenced with Oracle DBs to guarantee authenticity without breaching confidence.
-                    </p>
-                  </div>
-                </div>
-
-                <div className={`mt-6 pt-5 flex flex-col sm:flex-row gap-3 border-t ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
-                  <button onClick={() => setStep(0)} className={`w-full sm:flex-1 py-2.5 border-2 font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all shadow-sm order-2 sm:order-1 ${isDark ? 'border-white/10 text-slate-400 hover:bg-white/5 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}>Go Back</button>
-                  <button onClick={() => setStep(2)} className="w-full sm:flex-[2] py-2.5 bg-primary hover:bg-primary-dark text-white font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 order-1 sm:order-2">Confirm Hash & Proceed</button>
+                <div className="pt-8 flex justify-between border-t border-white/5 items-center">
+                  <button onClick={() => setStep(0)} className="text-white/40 hover:text-white text-[9px] font-bold uppercase tracking-[0.2em] transition-colors">
+                    Revert
+                  </button>
+                  <button onClick={() => setStep(2)} className="btn-primary py-4 px-12 text-[10px] uppercase font-bold tracking-[0.2em] flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform">
+                    Confirm Payload <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                  </button>
                 </div>
               </div>
             )}
 
             {/* Step 2: Review & Submit */}
             {step === 2 && (
-              <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <h3 className="text-lg font-bold heading-display mb-5" style={{ color: 'var(--text)' }}>Sign & Authorize Submission</h3>
+              <div className="animate-fade-in space-y-10">
+                <h3 className="text-[9px] font-bold text-[#d4af37] uppercase tracking-[0.2em] flex items-center gap-3 pb-4 border-b border-white/5">
+                  <span className="material-symbols-outlined text-[16px]">verified_user</span>
+                  Protocol Authorization
+                </h3>
                 
-                <div className={`rounded-xl border overflow-hidden text-xs mb-5 font-mono shadow-inner ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                  <div className={`px-4 py-3 border-b shadow-sm ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Execution Payload</p>
+                <div className="rounded-[1.5rem] border border-white/5 overflow-hidden bg-[#0a0e14] mb-8">
+                  <div className="px-6 py-4 border-b border-white/5 bg-white/5">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#d4af37]">Contract Parameters</p>
                   </div>
-                  <div className={`divide-y px-4 font-medium ${isDark ? 'divide-white/5 text-slate-400' : 'divide-slate-200 text-slate-600'}`}>
+                  <div className="divide-y divide-white/5 px-6 font-mono text-[10px]">
                     {[
-                      ["PROPERTY.TITLE", form.name],
-                      ["PROPERTY.ADDR", `${form.address}, ${form.city}`],
-                      ["ASSET.CLASS", form.property_type],
-                      ["ASSET.SIZE", form.area_sqft ? `${Number(form.area_sqft).toLocaleString()} SQ.FT` : "UNKNOWN"],
-                      ["ASSET.VALUE", form.asset_value_inr ? `INR ${form.asset_value_inr}` : "UNKNOWN"],
-                      ["DOCUMENT.HASH", fileSelected ?? "NULL_REFERENCE"],
-                      ["PRINCIPAL.UID", form.owner_wallet || "UNKNOWN_CALLER"],
+                      ["ASSET_ID", form.name],
+                      ["GEO_LOC", `${form.address}, ${form.city}`],
+                      ["CLASS", form.property_type.toUpperCase()],
+                      ["VOL_SQ", form.area_sqft ? `${Number(form.area_sqft).toLocaleString()}` : "NULL"],
+                      ["VAL_INR", form.asset_value_inr ? `₹${form.asset_value_inr} Cr` : "NULL"],
+                      ["ZK_HASH", fileSelected ?? "NULL_REF"],
+                      ["SIG", form.owner_wallet || "UNKNOWN"],
                     ].map(([key, val]) => (
-                      <div key={key} className="flex flex-col sm:flex-row sm:justify-between py-3 gap-1.5">
-                        <span className="text-slate-500 font-bold text-[10px]">{key}</span>
-                        <span className="text-slate-900 font-bold max-w-[250px] truncate text-left sm:text-right bg-white px-2 py-0.5 rounded border border-slate-100 text-[11px]">{val}</span>
+                      <div key={key} className="flex flex-col sm:flex-row sm:justify-between py-4 gap-2">
+                        <span className="text-white/40 font-bold uppercase">{key}</span>
+                        <span className="text-white font-bold max-w-[250px] truncate text-left sm:text-right">{val}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs flex gap-3 mb-5 shadow-sm">
-                  <span className="material-symbols-outlined text-amber-500 text-[20px] shrink-0">gavel</span>
+                <div className="bg-[#d4af37]/5 border border-[#d4af37]/20 rounded-2xl p-6 flex gap-4">
+                  <span className="material-symbols-outlined text-[#d4af37] text-[24px] shrink-0 font-light">gavel</span>
                   <div>
-                    <p className="font-bold text-amber-600 uppercase tracking-widest text-[10px] mb-1">Legal Disclaimer</p>
-                    <p className="text-amber-800 font-medium leading-relaxed text-xs">
-                      By signing this transaction, you agree to submit the hashed asset for cross-verification. Immutable on-chain records cannot be tampered with or revoked.
-                    </p>
+                     <p className="font-bold text-[#d4af37] uppercase tracking-[0.2em] text-[8px] mb-2">Legal Execution</p>
+                     <p className="text-[#dee3ea]/70 font-medium leading-relaxed text-xs">
+                        By authorizing this signature, you execute an irrevocable on-chain transaction. The asset will be locked into the registry for oracle verification.
+                     </p>
                   </div>
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-xs text-red-600 flex gap-3 mb-5 font-bold shadow-sm">
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-[10px] text-red-400 flex items-center gap-3 font-bold uppercase tracking-widest">
                     <span className="material-symbols-outlined text-[18px]">error</span>
                     {error}
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                  <button onClick={() => setStep(1)} className="w-full sm:flex-1 py-2.5 border-2 border-slate-200 text-slate-600 font-bold uppercase tracking-widest text-[11px] rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm order-2 sm:order-1">Decline</button>
+                <div className="pt-8 flex flex-col sm:flex-row justify-end items-center gap-6 border-t border-white/5">
+                  <button onClick={() => setStep(1)} className="text-white/40 hover:text-white text-[9px] font-bold uppercase tracking-[0.2em] transition-colors order-2 sm:order-1">
+                    Decline Signature
+                  </button>
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className={`w-full sm:flex-[2] py-2.5 text-white font-bold uppercase tracking-widest text-[11px] rounded-lg transition-all flex items-center justify-center gap-2 order-1 sm:order-2 shadow-md ${isSubmitting ? "bg-slate-400 cursor-wait shadow-none" : "bg-primary hover:bg-primary-dark hover:shadow-lg hover:-translate-y-0.5"}`}
+                    className="w-full sm:w-auto btn-primary py-4 px-12 text-[10px] font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale hover:scale-[1.02] transition-transform order-1 sm:order-2"
                   >
                     {isSubmitting ? (
-                      <>
-                        <span className="material-symbols-outlined text-[18px] animate-spin">autorenew</span>
-                        Executing...
-                      </>
+                      <><span className="material-symbols-outlined text-[16px] animate-spin">autorenew</span> Executing...</>
                     ) : (
-                      <>
-                        <span className="material-symbols-outlined text-[18px]">fingerprint</span>
-                        Authorize On-Chain
-                      </>
+                      <><span className="material-symbols-outlined text-[16px]">fingerprint</span> Authorize Registry</>
                     )}
                   </button>
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* Info box */}
-          <div className="bg-white border border-slate-200 rounded-[16px] p-5 md:p-7 mt-8 shadow-sm">
-            <h4 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-5 heading-display">
-              <span className="size-8 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shadow-sm">
-                <span className="material-symbols-outlined text-[16px] text-primary">account_tree</span>
-              </span>
-              Execution Workflow
-            </h4>
-            <ol className="space-y-4 text-slate-600 font-medium text-xs list-none ml-4 border-l-2 border-slate-100 pl-6 relative">
-              <li className="relative"><span className="absolute -left-[29px] top-1 size-2.5 border-[2px] border-white rounded-full bg-slate-300 shadow-sm"></span>You submit immutable property records & title deed.</li>
-              <li className="relative"><span className="absolute -left-[29px] top-1 size-2.5 border-[2px] border-white rounded-full bg-primary shadow-sm"></span>Our validators encode a <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px] font-bold font-mono ml-0.5 border border-primary/20">SHA-256 ZK Proof</code>.</li>
-              <li className="relative"><span className="absolute -left-[29px] top-1 size-2.5 border-[2px] border-white rounded-full bg-[#F59E0B] shadow-sm"></span>Initialization instruction recorded to Solana mainnet: <strong className="text-[#F59E0B] font-bold uppercase tracking-widest text-[9px] ml-0.5 bg-[#F59E0B]/10 px-1.5 py-0.5 rounded">Pending</strong>.</li>
-              <li className="relative"><span className="absolute -left-[29px] top-1 size-2.5 border-[2px] border-white rounded-full bg-slate-300 shadow-sm"></span>Decentralized oracle queries official jurisdictional ledgers.</li>
-              <li className="relative"><span className="absolute -left-[29px] top-1 size-2.5 border-[2px] border-white rounded-full bg-[#10B981] shadow-sm"></span>Oracles attest validity on-chain via smart contracts: <strong className="text-[#10B981] font-bold uppercase tracking-widest text-[9px] ml-0.5 bg-[#10B981]/10 px-1.5 py-0.5 rounded">Verified</strong>.</li>
-              <li className="relative"><span className="absolute -left-[29px] top-1 size-2.5 border-[2px] border-white rounded-full bg-slate-300 shadow-sm"></span>Asset unlocks for SPL Token-2022 fractionalization.</li>
-            </ol>
+          {/* Workflow Note */}
+          <div className="mt-16 text-center space-y-2">
+            <span className="material-symbols-outlined text-white/20 text-3xl font-light">account_tree</span>
+            <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-white/30">
+              Protocol Sequence
+            </p>
+            <p className="text-white/40 text-xs max-w-sm mx-auto leading-relaxed">
+              Origination &rarr; ZK Hash Encryption &rarr; Oracle Verification &rarr; SPL Fractionalization
+            </p>
           </div>
 
         </div>

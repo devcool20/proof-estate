@@ -203,7 +203,10 @@ export async function createUserProfile(payload: { wallet: string; name?: string
 
 // Helper to get absolute URL for documents from backend
 export function getDocUrl(path?: string) {
-    if (!path) return "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=2000";
+    if (!path || path.length < 5 || (!path.includes("/") && !path.includes("\\") && !path.includes("."))) {
+        return "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=2000";
+    }
     if (path.startsWith("http")) return path;
-    return `${API_BASE}${path}`;
+    const cleanPath = path.startsWith("/") ? path : `/${path}`;
+    return `${API_BASE}${cleanPath}`;
 }

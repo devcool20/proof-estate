@@ -5,13 +5,10 @@ import { createUserProfile } from "@/lib/api";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
 import { WalletProviders } from "@/components/WalletProviders";
-import { useTheme } from "@/lib/ThemeContext";
 
 function ProfilePageContent() {
   const { user, setUser } = useAuth();
   const { publicKey } = useWallet();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -46,7 +43,6 @@ function ProfilePageContent() {
     setSuccess(false);
     
     try {
-      // The backend creates an upsert
       const updatedUser = await createUserProfile({
         wallet: identifier,
         name,
@@ -57,11 +53,10 @@ function ProfilePageContent() {
       setUser(updatedUser);
       setSuccess(true);
       
-      // Auto-hide success message after 3 seconds
       setTimeout(() => setSuccess(false), 3000);
       
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update profile");
+      setError(err instanceof Error ? err.message : "Failed to sync protocol");
     } finally {
       setLoading(false);
     }
@@ -70,147 +65,147 @@ function ProfilePageContent() {
   const isElevatedRole = user?.role === "admin" || user?.role === "verifier";
 
   return (
-    <div className="flex-grow flex flex-col antialiased min-h-screen relative" style={{ backgroundColor: 'var(--bg)', color: 'var(--text)' }}>
-      <main className="flex-grow px-6 py-8 md:py-10 relative">
-        <div className="absolute top-0 right-1/4 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px] pointer-events-none"></div>
+    <div className="flex-grow flex flex-col antialiased bg-[#0f1419] text-[#dee3ea] min-h-screen relative">
+      <main className="flex-grow px-6 md:px-12 py-16 lg:py-24 relative z-10 w-full max-w-[1920px] mx-auto flex justify-center items-center">
         
-        <div className="max-w-2xl mx-auto space-y-8 relative z-10">
+        {/* Background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#d4af37]/5 blur-[150px] pointer-events-none rounded-full"></div>
+
+        <div className="max-w-3xl w-full relative z-10">
           
-          <div className={`flex flex-col gap-2 pb-5 ${isDark ? 'border-b border-white/5' : 'border-b border-slate-200'}`}>
-            <h2 className="text-xl md:text-3xl font-bold tracking-tight heading-display" style={{ color: 'var(--text)' }}>Protocol Profile</h2>
-            <p className="font-medium text-xs md:text-sm" style={{ color: 'var(--text-secondary)' }}>Manage your identity and access level within the ProofEstate ecosystem.</p>
+          <div className="text-center mb-12">
+             <span className="text-[#d4af37] text-[10px] font-bold tracking-[0.2em] uppercase mb-4 block">
+               Curator Profile
+             </span>
+             <h1 className="text-4xl md:text-5xl font-medium heading-display text-white mb-6">Identity Verification</h1>
+             <p className="text-white/50 text-basis max-w-lg mx-auto leading-relaxed">
+               Establish your identity on the ProofEstate protocol. Your digital signature allows access to exclusive asset registries and tokenized yields.
+             </p>
           </div>
 
-          <form onSubmit={handleSave} className="space-y-6">
+          <form onSubmit={handleSave} className="space-y-8">
             
-            {/* Identity Group */}
-            <div className={`p-5 rounded-[20px] border shadow-sm space-y-5 ${isDark ? 'bg-[var(--bg-card)] border-white/5' : 'bg-white border-slate-200'}`}>
-              <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-1.5 mb-2">
+            {/* Identity Card */}
+            <div className="bg-[#171c21] rounded-[2rem] p-8 md:p-12 border border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+              <h3 className="text-[9px] font-bold text-[#d4af37] uppercase tracking-[0.2em] flex items-center gap-3 mb-8 pb-4 border-b border-white/5">
                 <span className="material-symbols-outlined text-[16px]">fingerprint</span>
-                Primary Identity
+                Primary Protocol Identity
               </h3>
 
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Wallet Address (Primary Key)</label>
-                  <div className={`shadow-inner rounded-lg px-3 py-2.5 text-xs font-mono font-bold break-all cursor-not-allowed ${
-                  isDark ? 'bg-white/5 border border-white/10 text-slate-400' : 'bg-slate-100 border border-slate-200 text-slate-500'
-                }`}>
-                    {publicKey ? publicKey.toBase58() : (user?.wallet || "No Identity Found")}
+              <div className="space-y-8">
+                <div>
+                  <label className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-3">Address (Primary Key)</label>
+                  <div className="bg-[#0a0e14] border border-white/5 rounded-xl px-5 py-4 font-mono text-[#d4af37]/70 text-xs tracking-widest break-all">
+                    {publicKey ? publicKey.toBase58() : (user?.wallet || "UNVERIFIED_IDENTITY")}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5 group">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block group-focus-within:text-primary transition-colors">Legal Name / Entity</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="group">
+                    <label className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-3 group-focus-within:text-[#d4af37] transition-colors">Legal Designation</label>
                     <input 
                       type="text" 
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="E.g. Wayne Enterprises"
-                      className={`w-full h-10 px-3 border rounded-lg focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300 placeholder:text-slate-400 font-medium text-xs shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] ${isDark ? 'bg-[var(--bg-input)] border-white/10 text-white hover:border-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 hover:border-slate-300 focus:bg-white'}`}
+                      placeholder="e.g. Wayne Enterprises"
+                      className="w-full bg-transparent border-b border-white/20 text-white text-lg font-light pb-2 focus:outline-none focus:border-[#d4af37] transition-all placeholder:text-white/20"
                     />
                   </div>
                   
-                  <div className="space-y-1.5 group">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block group-focus-within:text-primary transition-colors">Contact Email</label>
+                  <div className="group">
+                    <label className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em] block mb-3 group-focus-within:text-[#d4af37] transition-colors">Contact Protocol</label>
                     <input 
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="admin@example.com"
-                      className={`w-full h-10 px-3 border rounded-lg focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all duration-300 placeholder:text-slate-400 font-medium text-xs shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] ${isDark ? 'bg-[var(--bg-input)] border-white/10 text-white hover:border-white/20' : 'bg-slate-50 border-slate-200 text-slate-900 hover:border-slate-300 focus:bg-white'}`}
+                      placeholder="curator@domain.com"
+                      className="w-full bg-transparent border-b border-white/20 text-white text-lg font-light pb-2 focus:outline-none focus:border-[#d4af37] transition-all placeholder:text-white/20"
                     />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Access Level Group */}
-            <div className={`p-5 rounded-[20px] border shadow-sm space-y-4 ${isDark ? 'bg-[var(--bg-card)] border-white/5' : 'bg-white border-slate-200'}`}>
-              <h3 className="text-[10px] font-bold text-primary uppercase tracking-widest flex items-center gap-1.5 mb-2">
-                <span className="material-symbols-outlined text-[16px]">security</span>
-                Protocol Access Level
-              </h3>
-              
+            {/* Access Role */}
+            <div className="bg-[#171c21] rounded-[2rem] p-8 md:p-12 border border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+               <h3 className="text-[9px] font-bold text-[#d4af37] uppercase tracking-[0.2em] flex items-center gap-3 mb-8 pb-4 border-b border-white/5">
+                  <span className="material-symbols-outlined text-[16px]">security</span>
+                  Authorization Level
+               </h3>
+
               {isElevatedRole ? (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
-                   <span className="material-symbols-outlined text-[22px] text-primary">shield_locked</span>
+                <div className="bg-[#d4af37]/10 border border-[#d4af37]/20 rounded-xl p-6 flex flex-col md:flex-row items-start gap-4 shadow-sm">
+                   <div className="size-12 rounded-full border border-[#d4af37]/40 flex items-center justify-center shrink-0">
+                     <span className="material-symbols-outlined text-[20px] text-[#d4af37]">shield_locked</span>
+                   </div>
                    <div>
-                     <p className="text-slate-900 font-bold mb-0.5 tracking-wide text-sm">Elevated Role Active</p>
-                     <p className="text-xs font-medium text-slate-600">Your account is currently assigned to the <span className="font-bold text-primary uppercase">{user?.role}</span> tier. This access level cannot be downgraded manually via this interface.</p>
+                     <p className="text-[#d4af37] font-medium heading-display text-xl mb-1">Elevated Credentials Active</p>
+                     <p className="text-white/60 text-sm leading-relaxed">Your identity operates at the <span className="font-bold text-white uppercase tracking-widest">{user?.role}</span> tier. Downgrades require multi-sig manual unbinding via the admin portal.</p>
                    </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {/* Investor Toggle */}
-                    <label className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 shadow-sm ${role === 'investor' ? 'border-[#10B981] bg-green-50 shadow-md' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300'}`}>
-                      <input type="radio" name="role" value="investor" checked={role === "investor"} onChange={() => setRole("investor")} className="sr-only" />
-                      <div className={`size-9 rounded-full flex items-center justify-center shrink-0 border-[2px] shadow-sm ${role === 'investor' ? 'bg-white border-[#10B981] text-[#10B981]' : 'bg-white border-slate-200 text-slate-400'}`}>
-                        <span className="material-symbols-outlined text-[18px]">monitoring</span>
-                      </div>
-                      <div>
-                        <p className={`font-bold text-sm mb-0.5 ${role === 'investor' ? 'text-slate-900' : 'text-slate-600'}`}>Retail Investor</p>
-                        <p className="text-[10px] font-medium text-slate-500 leading-relaxed">Access the global marketplace to purchase fractionalized property tokens.</p>
-                      </div>
-                    </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Investor Toggle */}
+                  <label className={`relative p-6 rounded-2xl border cursor-pointer transition-all duration-300 ${role === 'investor' ? 'bg-[#d4af37]/5 border-[#d4af37]/40 shadow-[inset_0_0_20px_rgba(212,175,55,0.05)]' : 'bg-[#0a0e14] border-white/5 hover:border-white/20'}`}>
+                    <input type="radio" name="role" value="investor" checked={role === "investor"} onChange={() => setRole("investor")} className="sr-only" />
+                    <div className="flex items-center gap-4 mb-4 mt-2 px-2">
+                       <span className={`material-symbols-outlined text-2xl transition-colors ${role === 'investor' ? 'text-[#d4af37]' : 'text-white/30'}`}>monitoring</span>
+                       <p className={`text-xl font-medium heading-display transition-colors ${role === 'investor' ? 'text-white' : 'text-white/50'}`}>Retail Investor</p>
+                    </div>
+                    <p className="text-xs text-white/50 px-2 leading-relaxed">Access the private collection to acquire fractional shares of institutional-grade properties.</p>
+                    
+                    {role === 'investor' && (
+                       <div className="absolute top-4 right-4 size-2 rounded-full bg-[#f2ca50] animate-pulse shadow-[0_0_10px_#f2ca50]"></div>
+                    )}
+                  </label>
 
-                    {/* Owner Toggle */}
-                    <label className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 shadow-sm ${role === 'owner' ? 'border-primary bg-blue-50 shadow-md' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300'}`}>
-                      <input type="radio" name="role" value="owner" checked={role === "owner"} onChange={() => setRole("owner")} className="sr-only" />
-                      <div className={`size-9 rounded-full flex items-center justify-center shrink-0 border-[2px] shadow-sm ${role === 'owner' ? 'bg-white border-primary text-primary' : 'bg-white border-slate-200 text-slate-400'}`}>
-                        <span className="material-symbols-outlined text-[18px]">domain</span>
-                      </div>
-                      <div>
-                        <p className={`font-bold text-sm mb-0.5 ${role === 'owner' ? 'text-slate-900' : 'text-slate-600'}`}>Property Owner</p>
-                        <p className="text-[10px] font-medium text-slate-500 leading-relaxed">Submit real-world assets for on-chain verification and fractionalization.</p>
-                      </div>
-                    </label>
-                  </div>
+                  {/* Owner Toggle */}
+                  <label className={`relative p-6 rounded-2xl border cursor-pointer transition-all duration-300 ${role === 'owner' ? 'bg-[#d4af37]/5 border-[#d4af37]/40 shadow-[inset_0_0_20px_rgba(212,175,55,0.05)]' : 'bg-[#0a0e14] border-white/5 hover:border-white/20'}`}>
+                    <input type="radio" name="role" value="owner" checked={role === "owner"} onChange={() => setRole("owner")} className="sr-only" />
+                    <div className="flex items-center gap-4 mb-4 mt-2 px-2">
+                       <span className={`material-symbols-outlined text-2xl transition-colors ${role === 'owner' ? 'text-[#d4af37]' : 'text-white/30'}`}>domain</span>
+                       <p className={`text-xl font-medium heading-display transition-colors ${role === 'owner' ? 'text-white' : 'text-white/50'}`}>Property Originator</p>
+                    </div>
+                    <p className="text-xs text-white/50 px-2 leading-relaxed">Submit real-world assets into the protocol. Initialize verification and tokenization sequences.</p>
+                    
+                    {role === 'owner' && (
+                       <div className="absolute top-4 right-4 size-2 rounded-full bg-[#f2ca50] animate-pulse shadow-[0_0_10px_#f2ca50]"></div>
+                    )}
+                  </label>
                 </div>
               )}
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-xs text-red-600 flex gap-3 mb-6 font-bold shadow-sm">
-                <span className="material-symbols-outlined text-[18px]">error</span>
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-xs text-red-400 flex items-center gap-3 font-bold">
+                <span className="material-symbols-outlined text-[16px]">error</span>
                 {error}
               </div>
             )}
             
             {success && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-xs text-[#10B981] flex gap-3 mb-6 font-bold shadow-sm">
-                <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                Profile updated successfully. Protocol synchronization complete.
+              <div className="bg-[#10B981]/10 border border-[#10B981]/20 rounded-xl p-4 text-xs text-[#10B981] flex items-center gap-3 font-bold">
+                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                Identity Synced. Authorization Complete.
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-2 mt-6">
-              <Link href="/" className={`w-full sm:w-auto px-5 py-2.5 rounded-lg border-2 font-bold uppercase tracking-widest text-[11px] transition-all shadow-sm active:scale-95 text-center order-2 sm:order-1 ${
-                isDark ? 'border-white/10 text-slate-400 hover:bg-white/5 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}>
-                Cancel
+            <div className="flex flex-col-reverse sm:flex-row justify-end items-center gap-6 pt-4">
+              <Link href="/" className="text-white/40 hover:text-white transition-colors text-[9px] font-bold tracking-[0.2em] uppercase">
+                Abort
               </Link>
               <button 
                 type="submit" 
                 disabled={loading || (!publicKey && !user)}
-                className="w-full sm:w-auto px-6 py-2.5 bg-primary text-white rounded-lg font-bold uppercase tracking-widest text-[11px] hover:bg-primary-light transition-all duration-300 shadow-[0_4px_14px_rgba(17,107,251,0.39)] hover:shadow-[0_6px_20px_rgba(17,107,251,0.23)] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:hover:scale-100 disabled:shadow-none order-1 sm:order-2"
+                className="w-full sm:w-auto btn-primary py-4 px-12 text-[10px] font-bold tracking-[0.2em] uppercase flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale hover:scale-[1.02] transition-transform"
               >
                 {loading ? (
-                  <>
-                    <span className="material-symbols-outlined animate-spin text-[18px]">sync</span>
-                    Committing...
-                  </>
+                  <><span className="material-symbols-outlined animate-spin text-[16px]">autorenew</span> Securing...</>
                 ) : (
-                  <>
-                    <span className="material-symbols-outlined text-[18px]">save</span>
-                    Sync to Protocol
-                  </>
+                  <><span className="material-symbols-outlined text-[16px]">verified</span> Commit Identity</>
                 )}
               </button>
             </div>
-            
           </form>
         </div>
       </main>
